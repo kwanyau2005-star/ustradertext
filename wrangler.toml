@@ -1,0 +1,6 @@
+name = "us-trading-dashboard"
+compatibility_date = "2026-07-09"
+pages_build_output_dir = "."
+
+[vars]
+UPSTREAM_REST_BASE = "http://44.219.45.87:8081"
