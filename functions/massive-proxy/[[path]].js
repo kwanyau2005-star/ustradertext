@@ -20,6 +20,13 @@ function corsHeaders(origin = "*") {
   };
 }
 
+function sanitizeSecret(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^["'`]+/, "")
+    .replace(/["'`]+$/, "");
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const url = new URL(request.url);
@@ -33,7 +40,7 @@ export async function onRequest(context) {
     return json({ error: "method_not_allowed" }, 405, corsHeaders(origin));
   }
 
-  const proxyKey = env.MASSIVE_PROXY_KEY;
+  const proxyKey = sanitizeSecret(env.MASSIVE_PROXY_KEY);
   if (!proxyKey) {
     return json(
       { error: "missing_server_secret", message: "Cloudflare secret MASSIVE_PROXY_KEY is not set." },
@@ -42,7 +49,7 @@ export async function onRequest(context) {
     );
   }
 
-  const upstreamBase = (env.UPSTREAM_REST_BASE || DEFAULT_UPSTREAM).replace(/\/$/, "");
+  const upstreamBase = sanitizeSecret(env.UPSTREAM_REST_BASE || DEFAULT_UPSTREAM).replace(/\/$/, "");
   const upstreamPath = url.pathname.replace(/^\/massive-proxy/, "") || "/";
   const upstreamUrl = `${upstreamBase}${upstreamPath}${url.search}`;
 
