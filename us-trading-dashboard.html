@@ -1513,8 +1513,8 @@
       ADBE: ["adobe","photoshop","illustrator","acrobat","firefly"]
     };
     const massivePolygonProxy = {
-      // 直接打上游 REST（會曝光 key；而且如果頁面係 https，瀏覽器可能會擋 http API）
-      restBaseUrl: "http://44.219.45.87:8081",
+      // Render / 本機同站 proxy
+      restBaseUrl: "/massive-proxy",
       headerName: "X-Proxy-Key"
     };
     const deploymentMode = {
@@ -1522,14 +1522,10 @@
       isLocalhost: ["127.0.0.1","localhost"].includes(location.hostname || ""),
       isCloudflareHosted: /(?:^|\.)pages\.dev$|(?:^|\.)workers\.dev$/i.test(location.hostname || "")
     };
-    deploymentMode.isManagedPolygonProxy = false;
+    deploymentMode.isManagedPolygonProxy = !deploymentMode.isLocalhost;
     const priceProviderVersionKey = "dashboardPriceProviderVersion";
-    const priceProviderVersionValue = "massive-direct-browser-v1";
-    // 注意：以下寫死真 key，任何人都可以喺前端睇到。
-    const defaultApiKeys = {
-      polygon: "991e547efc0f2590219103f3445c6e51174ac1dd6b455a86914cf18d",
-      finnhub: ""
-    };
+    const priceProviderVersionValue = "massive-render-proxy-v1";
+    const defaultApiKeys = { polygon: "", finnhub: "" };
     const coreUniverse50 = "AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA, AVGO, NFLX, AMD";
 
     function setLoadingState(percent=0, text="等待更新"){
@@ -1628,10 +1624,13 @@
     }
     function applyKeyUiState(){
       const saved = hasSavedPolygonKey();
-      if (el.changePolygonKeyBtn) el.changePolygonKeyBtn.style.display = "none";
-      if (el.modalSectionKeys) el.modalSectionKeys.style.display = "none";
-      if (el.modalIntro) {
-        el.modalIntro.textContent = "前端寫死 REST key 直連模式：唔再用 Cloudflare secret，所有人都可以喺前端見到條 key。";
+      if (deploymentMode.isManagedPolygonProxy) {
+        if (el.changePolygonKeyBtn) el.changePolygonKeyBtn.style.display = "none";
+        if (el.modalSectionKeys) el.modalSectionKeys.style.display = "none";
+        if (el.modalIntro) {
+          el.modalIntro.textContent = "Render / 伺服器代理模式：Massive / Polygon key 由伺服器端環境變數管理，用戶端唔需要再填。";
+        }
+        return;
       }
       if (el.modalSectionKeys) {
         el.modalSectionKeys.style.display = saved ? "none" : "block";
@@ -1646,8 +1645,8 @@
 
     async function promptAndSaveKey(kind){
       // kind: "polygon" | "finnhub"
-      if (kind === "polygon") {
-        el.statusHint.textContent = "而家已改做前端寫死 REST key 模式，唔再經設定視窗改 Massive key。";
+      if (kind === "polygon" && deploymentMode.isManagedPolygonProxy) {
+        el.statusHint.textContent = "伺服器代理模式：Massive / Polygon key 唔喺前端改，請去 Render 設定環境變數。";
         return;
       }
       const title = kind === "polygon" ? "貼入 Massive / Polygon 代理 Key" : "貼入 Finnhub API Key";
@@ -4350,10 +4349,6 @@
         el.statusHint.textContent = "請先輸入 ticker list。";
         return;
       }
-      if (location.protocol === "https:" && massivePolygonProxy.restBaseUrl.startsWith("http://")) {
-        el.statusHint.textContent = "而家係 https 網站直連 http REST，瀏覽器可能會擋 mixed content；如更新失敗，請改用 http 網站 / 本機 server / 可提供 https API 的代理。";
-      }
-
       saveKeys();
       saveRuntimeSettings();
       errorCounter = 0;
