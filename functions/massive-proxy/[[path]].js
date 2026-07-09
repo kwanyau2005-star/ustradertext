@@ -21,10 +21,13 @@ function corsHeaders(origin = "*") {
 }
 
 function sanitizeSecret(value) {
-  return String(value || "")
+  const cleaned = String(value || "")
     .trim()
+    .replace(/\s+/g, "")
     .replace(/^["'`]+/, "")
     .replace(/["'`]+$/, "");
+  const extracted = cleaned.match(/[a-fA-F0-9]{24,128}/);
+  return extracted ? extracted[0] : cleaned;
 }
 
 export async function onRequest(context) {
