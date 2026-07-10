@@ -1,5 +1,5 @@
 // 每次發佈如果 HTML/CSS/JS 有改動，請記得更新版本號，避免用戶一直食舊 cache。
-const CACHE_NAME = "ustradertext-shell-v5";
+const CACHE_NAME = "ustradertext-shell-v8";
 const APP_SHELL = [
   "/",
   "/index.html",

@@ -1222,6 +1222,14 @@
               <label for="finnhubKey">minishare 授權碼（用於新聞快訊 / 長新聞）</label>
               <input id="finnhubKey" type="password" placeholder="貼入 minishare 授權碼（用於新聞頁與股票消息）" />
             </div>
+            <div>
+              <label for="minishareRtUsKey">minishare 授權碼（用於美股實時行情 `rt_us_k`）</label>
+              <input id="minishareRtUsKey" type="password" placeholder="貼入美股實時行情產品授權碼" />
+            </div>
+            <div>
+              <label for="minishareUsDailyKey">minishare 授權碼（用於美股日線 `us_daily_ms`）</label>
+              <input id="minishareUsDailyKey" type="password" placeholder="貼入美股日線產品授權碼" />
+            </div>
           </div>
           <div class="button-row">
             <button class="secondary" id="saveKeysBtn">儲存 Keys</button>
@@ -1232,9 +1240,9 @@
         <section class="card modal-section" id="modalSectionWatchlist">
           <h2 class="section-title">Watchlist</h2>
           <label for="tickers">Ticker list</label>
-          <textarea id="tickers" class="mono" placeholder="例：AAPL, MSFT, NVDA, AMD, META, TSLA, AMZN, GOOGL, AVGO, NFLX, PLTR ..."></textarea>
+          <textarea id="tickers" class="mono" placeholder="例：AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA, AVGO, NFLX, AMD, PLTR, JPM, BAC ..."></textarea>
           <div class="button-row">
-            <button class="secondary" id="loadExampleBtn">載入 10 隻主流股</button>
+            <button class="secondary" id="loadExampleBtn">載入 30 隻主流高流動性股</button>
             <button class="primary" id="modalRunBtn">更新數據</button>
           </div>
           <div class="subtext" style="margin-top:10px;">
@@ -1481,7 +1489,7 @@
     ];
 
     const el = Object.fromEntries([
-      "polygonKey","finnhubKey","saveKeysBtn","clearKeysBtn","tickers","loadExampleBtn","runBtn",
+      "polygonKey","finnhubKey","minishareRtUsKey","minishareUsDailyKey","saveKeysBtn","clearKeysBtn","tickers","loadExampleBtn","runBtn",
       "dataMode","includeBenchmarks","maxTickersPerRun","priceLookbackDays","newsLookbackDays","polygonDelayMs","finnhubDelayMs","minPrice","minMarketCap","minRvol","maxAtrPct","maxEarningsRisk","minScore","macroTone","scannerBias",
       "statusHint","selectedSummary","exportSelectedBtn","clearSelectedBtn","exportBtn","copyJsonBtn",
       "navScanner","navNews","pageScanner","pageNews",
@@ -1604,8 +1612,13 @@
     deploymentMode.isManagedPolygonProxy = !deploymentMode.isLocalhost;
     const priceProviderVersionKey = "dashboardPriceProviderVersion";
     const priceProviderVersionValue = "massive-render-proxy-v1";
-    const defaultApiKeys = { polygon: "", finnhub: "" };
-    const coreUniverse50 = "AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA, AVGO, NFLX, AMD";
+    const defaultApiKeys = {
+      polygon: "",
+      finnhub: "",
+      minishareRtUs: "dIFnS05lM2Cxm7Nydo7ijr3kxZt4BomWu0s8Rv5jtyOJ2F0iVYIgawhM3e7825ce",
+      minishareUsDaily: "d6NcHa2RSm2htu5XpHR8s2Sbd19y4SsBS2y00ZnN899Mwv5EVTJBYk1Gea566c0e"
+    };
+    const coreUniverse50 = "AAPL, MSFT, NVDA, AMZN, META, GOOGL, TSLA, AVGO, NFLX, AMD, PLTR, MU, TSM, ASML, ARM, JPM, BAC, GS, MS, C, WFC, XOM, CVX, UNH, LLY, COST, WMT, ORCL, CRM, QCOM";
 
     function setLoadingState(percent=0, text="等待更新"){
       const safe = clamp(percent, 0, 100);
@@ -1618,9 +1631,11 @@
         localStorage.setItem("dashboardPolygonKey", el.polygonKey.value.trim());
       }
       localStorage.setItem("dashboardFinnhubKey", el.finnhubKey.value.trim());
+      localStorage.setItem("dashboardMinishareRtUsKey", el.minishareRtUsKey.value.trim());
+      localStorage.setItem("dashboardMinishareUsDailyKey", el.minishareUsDailyKey.value.trim());
       applyKeyUiState();
       el.statusHint.textContent = deploymentMode.isManagedPolygonProxy
-        ? "Render 模式：Massive key 由伺服器管理；本機只保存 minishare 授權碼。"
+        ? "Render 模式：Massive key 由伺服器管理；本機保存 minishare 新聞 / 美股即時 / 美股日線授權碼。"
         : "Keys 已永久儲存到本機瀏覽器。";
     }
 
@@ -1628,12 +1643,16 @@
       // 你想「直接喺度改」而唔經輸入欄：用網址一次性導入 key
       // 用法（導入後會自動清走 hash，避免 key 留喺網址）：
       // Massive/Polygon：.../us-trading-dashboard.html#pk=YOUR_KEY
-      // minishare：     .../us-trading-dashboard.html#fh=YOUR_TOKEN
+      // minishare 新聞： ...#fh=YOUR_TOKEN
+      // minishare 實時： ...#mrt=YOUR_TOKEN
+      // minishare 日線： ...#mdy=YOUR_TOKEN
       const hash = String(location.hash || "").replace(/^#/, "");
       if (!hash) return false;
       const params = new URLSearchParams(hash);
       const pk = params.get("pk");
       const fh = params.get("fh");
+      const mrt = params.get("mrt");
+      const mdy = params.get("mdy");
       let changed = false;
       if (!deploymentMode.isManagedPolygonProxy && pk && String(pk).trim().length >= 8) {
         const v = String(pk).trim();
@@ -1647,6 +1666,18 @@
         el.finnhubKey.value = v;
         changed = true;
       }
+      if (mrt && String(mrt).trim().length >= 8) {
+        const v = String(mrt).trim();
+        localStorage.setItem("dashboardMinishareRtUsKey", v);
+        el.minishareRtUsKey.value = v;
+        changed = true;
+      }
+      if (mdy && String(mdy).trim().length >= 8) {
+        const v = String(mdy).trim();
+        localStorage.setItem("dashboardMinishareUsDailyKey", v);
+        el.minishareUsDailyKey.value = v;
+        changed = true;
+      }
       if (changed) {
         history.replaceState(null, "", location.pathname + location.search);
       }
@@ -1656,8 +1687,12 @@
     function loadKeys(){
       const localPolygon = localStorage.getItem("dashboardPolygonKey");
       const localFinnhub = localStorage.getItem("dashboardFinnhubKey");
+      const localMinishareRtUs = localStorage.getItem("dashboardMinishareRtUsKey");
+      const localMinishareUsDaily = localStorage.getItem("dashboardMinishareUsDailyKey");
       const sessionPolygon = sessionStorage.getItem("dashboardPolygonKey");
       const sessionFinnhub = sessionStorage.getItem("dashboardFinnhubKey");
+      const sessionMinishareRtUs = sessionStorage.getItem("dashboardMinishareRtUsKey");
+      const sessionMinishareUsDaily = sessionStorage.getItem("dashboardMinishareUsDailyKey");
       const localProviderVersion = localStorage.getItem(priceProviderVersionKey);
       const shouldMigratePolygonKey = localProviderVersion !== priceProviderVersionValue;
       const imported = importKeysFromUrlOnce();
@@ -1665,6 +1700,8 @@
         ? ""
         : (shouldMigratePolygonKey ? defaultApiKeys.polygon : (localPolygon || sessionPolygon || defaultApiKeys.polygon));
       const f = localFinnhub || sessionFinnhub || defaultApiKeys.finnhub;
+      const rt = localMinishareRtUs || sessionMinishareRtUs || defaultApiKeys.minishareRtUs;
+      const dy = localMinishareUsDaily || sessionMinishareUsDaily || defaultApiKeys.minishareUsDaily;
       if (p) {
         el.polygonKey.value = p;
         localStorage.setItem("dashboardPolygonKey", p);
@@ -1674,8 +1711,18 @@
         el.finnhubKey.value = f;
         localStorage.setItem("dashboardFinnhubKey", f);
       }
+      if (rt) {
+        el.minishareRtUsKey.value = rt;
+        localStorage.setItem("dashboardMinishareRtUsKey", rt);
+      }
+      if (dy) {
+        el.minishareUsDailyKey.value = dy;
+        localStorage.setItem("dashboardMinishareUsDailyKey", dy);
+      }
       if (sessionPolygon) sessionStorage.removeItem("dashboardPolygonKey");
       if (sessionFinnhub) sessionStorage.removeItem("dashboardFinnhubKey");
+      if (sessionMinishareRtUs) sessionStorage.removeItem("dashboardMinishareRtUsKey");
+      if (sessionMinishareUsDaily) sessionStorage.removeItem("dashboardMinishareUsDailyKey");
       applyKeyUiState();
       if (imported) el.statusHint.textContent = "已由網址導入並永久保存 key。";
     }
@@ -1684,16 +1731,22 @@
         localStorage.removeItem("dashboardPolygonKey");
       }
       localStorage.removeItem("dashboardFinnhubKey");
+      localStorage.removeItem("dashboardMinishareRtUsKey");
+      localStorage.removeItem("dashboardMinishareUsDailyKey");
       localStorage.removeItem(priceProviderVersionKey);
       if (!deploymentMode.isManagedPolygonProxy) {
         sessionStorage.removeItem("dashboardPolygonKey");
       }
       sessionStorage.removeItem("dashboardFinnhubKey");
+      sessionStorage.removeItem("dashboardMinishareRtUsKey");
+      sessionStorage.removeItem("dashboardMinishareUsDailyKey");
       if (!deploymentMode.isManagedPolygonProxy) el.polygonKey.value = "";
       el.finnhubKey.value = "";
+      el.minishareRtUsKey.value = "";
+      el.minishareUsDailyKey.value = "";
       applyKeyUiState();
       el.statusHint.textContent = deploymentMode.isManagedPolygonProxy
-        ? "已清除本機 minishare 授權碼。Massive key 由伺服器端管理。"
+        ? "已清除本機 minishare 授權碼（新聞 / 美股即時 / 美股日線）。Massive key 由伺服器端管理。"
         : "本機已清除已保存 Keys。";
     }
 
@@ -1705,12 +1758,16 @@
       const saved = hasSavedPolygonKey();
       if (deploymentMode.isManagedPolygonProxy) {
         if (el.changePolygonKeyBtn) el.changePolygonKeyBtn.style.display = "none";
-        if (el.modalSectionKeys) el.modalSectionKeys.style.display = "none";
+        if (el.modalSectionKeys) el.modalSectionKeys.style.display = "block";
+        const polygonBox = el.polygonKey?.closest?.("div");
+        if (polygonBox) polygonBox.style.display = "none";
         if (el.modalIntro) {
-          el.modalIntro.textContent = "Render / 伺服器代理模式：Massive / Polygon key 由伺服器端環境變數管理，用戶端唔需要再填。";
+          el.modalIntro.textContent = "Render / 伺服器代理模式：Massive / Polygon key 由伺服器端管理；你仍然可以喺呢度填 minishare 新聞 / 美股即時 / 美股日線授權碼。";
         }
         return;
       }
+      const polygonBox = el.polygonKey?.closest?.("div");
+      if (polygonBox) polygonBox.style.display = "block";
       if (el.modalSectionKeys) {
         el.modalSectionKeys.style.display = saved ? "none" : "block";
       }
@@ -1775,7 +1832,7 @@
         keys: {
           title: "Keys（本機永久保存）",
           badge: "API 設定",
-          intro: "喺呢個視窗管理 Massive / Polygon 代理 key。保存一次之後，app 會自動長期使用。",
+          intro: "喺呢個視窗管理 Massive / Polygon 與 minishare 授權碼。保存一次之後，app 會自動長期使用。",
           section: el.modalSectionKeys
         },
         watchlist: {
@@ -1977,6 +2034,71 @@
     function calcWeekChange(bars){
       if (bars.length < 6) return 0;
       return pct(bars[bars.length - 1].c - bars[bars.length - 6].c, bars[bars.length - 6].c);
+    }
+    function calcDailyStructurePack(bars){
+      const last = bars[bars.length - 1];
+      const prev = bars[bars.length - 2] || null;
+      if (!last || bars.length < 20) {
+        return {
+          ma20:null, ma50:null, ma200:null,
+          ma20SlopeUp:false, ma50SlopeUp:false,
+          rangePos20:0.5, prev20High:last?.h || null, prev20Low:last?.l || null,
+          breakoutClose:false, breakdownClose:false,
+          stretchAtr:0, closeVsMa20Atr:0,
+          maStackLong:false, maStackShort:false,
+          insideDay:false, label:"資料不足"
+        };
+      }
+      const ma20Series = calcSmaSeries(bars, 20);
+      const ma50Series = calcSmaSeries(bars, 50);
+      const ma200Series = calcSmaSeries(bars, 200);
+      const ma20 = ma20Series.at(-1);
+      const ma50 = ma50Series.at(-1);
+      const ma200 = ma200Series.at(-1);
+      const ma20Prev = ma20Series.at(-2);
+      const ma50Prev = ma50Series.at(-2);
+      const prev20Bars = bars.slice(-21, -1).length ? bars.slice(-21, -1) : bars.slice(-20);
+      const high20 = Math.max(...bars.slice(-20).map(b => b.h));
+      const low20 = Math.min(...bars.slice(-20).map(b => b.l));
+      const prev20High = Math.max(...prev20Bars.map(b => b.h));
+      const prev20Low = Math.min(...prev20Bars.map(b => b.l));
+      const range20 = Math.max(1e-9, high20 - low20);
+      const rangePos20 = clamp((last.c - low20) / range20, 0, 1);
+      const atr14 = calcATR(bars, 14);
+      const ref3 = bars[bars.length - 4]?.c || last.c;
+      const stretchAtr = atr14 > 0 ? Math.abs(last.c - ref3) / atr14 : 0;
+      const closeVsMa20Atr = (atr14 > 0 && Number.isFinite(ma20)) ? (last.c - ma20) / atr14 : 0;
+      const ma20SlopeUp = Number.isFinite(ma20) && Number.isFinite(ma20Prev) ? ma20 > ma20Prev : false;
+      const ma50SlopeUp = Number.isFinite(ma50) && Number.isFinite(ma50Prev) ? ma50 > ma50Prev : false;
+      const maStackLong = Number.isFinite(ma20)
+        && Number.isFinite(ma50)
+        && last.c >= ma20
+        && ma20 >= ma50
+        && (!Number.isFinite(ma200) || ma50 >= ma200)
+        && ma20SlopeUp;
+      const maStackShort = Number.isFinite(ma20)
+        && Number.isFinite(ma50)
+        && last.c <= ma20
+        && ma20 <= ma50
+        && (!Number.isFinite(ma200) || ma50 <= ma200)
+        && !ma20SlopeUp;
+      const breakoutClose = last.c >= prev20High * 0.998;
+      const breakdownClose = last.c <= prev20Low * 1.002;
+      const insideDay = !!(prev && last.h <= prev.h && last.l >= prev.l);
+      const label = maStackLong ? "日線多頭健康"
+        : maStackShort ? "日線空頭健康"
+        : rangePos20 >= 0.65 ? "日線偏強"
+        : rangePos20 <= 0.35 ? "日線偏弱"
+        : "日線中性";
+      return {
+        ma20, ma50, ma200,
+        ma20SlopeUp, ma50SlopeUp,
+        rangePos20, prev20High, prev20Low,
+        breakoutClose, breakdownClose,
+        stretchAtr, closeVsMa20Atr,
+        maStackLong, maStackShort,
+        insideDay, label
+      };
     }
     function calcRVOL(bars){
       if (bars.length < 21) return 1;
@@ -2580,6 +2702,15 @@
         return out;
       });
     }
+    function getNewsAuthCode(){
+      return String(el.finnhubKey?.value || "").trim();
+    }
+    function getUsRealtimeAuthCode(){
+      return String(el.minishareRtUsKey?.value || "").trim();
+    }
+    function getUsDailyAuthCode(){
+      return String(el.minishareUsDailyKey?.value || "").trim();
+    }
     async function minishareApi(endpoint, authCode, params = {}){
       const body = { params };
       if (authCode) body.auth_code = authCode;
@@ -2593,6 +2724,90 @@
         throw new Error(String(json?.error || json?.message || `${endpoint} HTTP ${res.status}`));
       }
       return json;
+    }
+    function normalizeMinishareTimestamp(value){
+      const n = Number(value || 0);
+      if (!Number.isFinite(n) || n <= 0) return 0;
+      return n > 1e12 ? n : (n > 1e10 ? n : n * 1000);
+    }
+    function ymdCompact(d){
+      const dt = d instanceof Date ? d : new Date(d);
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const day = String(dt.getDate()).padStart(2, "0");
+      return `${y}${m}${day}`;
+    }
+    function normalizeUsDailyBars(rows){
+      return (rows || [])
+        .map(row => {
+          const t = normalizeMinishareTimestamp(row.timestamp_ms) || new Date(String(row.trade_date || "").replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).getTime();
+          const vwap = Number(row.vwap || 0);
+          const vol = Number(row.vol || 0);
+          return {
+            t,
+            o: Number(row.open || 0),
+            h: Number(row.high || 0),
+            l: Number(row.low || 0),
+            c: Number(row.close || 0),
+            v: vol,
+            vw: vwap,
+            n: Number(row.transactions || 0),
+            amount: Number(row.amount || (vwap && vol ? vwap * vol : 0))
+          };
+        })
+        .filter(b => b.t && Number.isFinite(b.c) && b.c > 0)
+        .sort((a,b) => a.t - b.t);
+    }
+    function normalizeUsRealtimeQuote(row){
+      return {
+        symbol: String(row.ts_code || "").toUpperCase(),
+        date: String(row.date || "").trim(),
+        o: Number(row.open || 0),
+        h: Number(row.high || 0),
+        l: Number(row.low || 0),
+        c: Number(row.close || 0),
+        pc: Number(row.pre_close || 0),
+        v: Number(row.vol || 0),
+        amount: Number(row.amount || 0),
+        pctChg: Number(row.pct_chg || 0)
+      };
+    }
+    async function minishareUsRealtimeQuotes(authCode, symbols=[]){
+      const uniqSymbols = [...new Set((symbols || []).map(s => String(s || "").trim().toUpperCase()).filter(Boolean))];
+      if (!uniqSymbols.length) return new Map();
+      const json = await minishareApi("rt_us_k", authCode, {
+        ts_code: uniqSymbols.join(","),
+        extFields: "date"
+      });
+      const rows = extractMinishareRows(json).map(normalizeUsRealtimeQuote);
+      return new Map(rows.map(row => [row.symbol, row]));
+    }
+    async function minishareUsDailyBars(authCode, symbol, startDate, endDate){
+      const json = await minishareApi("us_daily_ms", authCode, {
+        ts_code: symbol,
+        start_date: String(startDate || "").replace(/-/g, ""),
+        end_date: String(endDate || "").replace(/-/g, "")
+      });
+      return normalizeUsDailyBars(extractMinishareRows(json));
+    }
+    function mergeRealtimeIntoDailyBars(bars, quote){
+      if (!quote || !Number.isFinite(quote.c) || quote.c <= 0) return bars;
+      const out = [...(bars || [])];
+      const quoteTime = quote.date ? new Date(quote.date).getTime() : Date.now();
+      const last = out.at(-1);
+      const quoteDay = quote.date ? quote.date.slice(0, 10).replace(/-/g, "") : ymdCompact(new Date());
+      const lastDay = last?.t ? ymdCompact(new Date(last.t)) : "";
+      const mergedBar = {
+        t: Number.isFinite(quoteTime) && quoteTime > 0 ? quoteTime : Date.now(),
+        o: quote.o > 0 ? quote.o : (last?.o || quote.c),
+        h: quote.h > 0 ? quote.h : Math.max(last?.h || quote.c, quote.c),
+        l: quote.l > 0 ? quote.l : Math.min(last?.l || quote.c, quote.c),
+        c: quote.c,
+        v: quote.v > 0 ? quote.v : (last?.v || 0)
+      };
+      if (last && lastDay === quoteDay) out[out.length - 1] = mergedBar;
+      else out.push(mergedBar);
+      return out;
     }
     function normalizeMinishareQuickNews(row){
       const content = String(row?.content || "").trim();
@@ -2736,7 +2951,7 @@
       return marketNewsCache;
     }
     async function fetchStockNews(symbol){
-      const authCode = el.finnhubKey.value.trim();
+      const authCode = getNewsAuthCode();
       const lookbackDays = Number(el.newsLookbackDays.value) || 2;
       const delayMs = Number(el.finnhubDelayMs.value) || 0;
 
@@ -3895,12 +4110,45 @@
       let score = 0;
       const reasons = [];
       const sectorAlign = calcSectorAlignment(stock, "long");
+      const dailyPack = stock.dailyStructure || {};
       score += (stock.dailyTrend + 2) * 9;
       score += (stock.h1Trend + 2) * 7;
       score += (stock.h4Trend + 2) * 8;
       if (stock.dailyTrend >= 1) reasons.push("日線方向偏多");
       if (stock.h1Trend >= 1) reasons.push("短線結構偏多");
       if (stock.h4Trend >= 1) reasons.push("4H 結構偏多");
+      if (dailyPack.maStackLong) {
+        score += 10;
+        reasons.push("日線均線多頭排列");
+      } else if ((dailyPack.closeVsMa20Atr || 0) >= -0.15 && dailyPack.ma20SlopeUp) {
+        score += 4;
+        reasons.push("守住 MA20");
+      } else if ((dailyPack.closeVsMa20Atr || 0) < -0.35) {
+        score -= 10;
+        reasons.push("跌穿 MA20，承接不足");
+      }
+      if ((dailyPack.rangePos20 || 0.5) >= 0.78) {
+        score += 6;
+        reasons.push("收市接近 20 日高位");
+      } else if ((dailyPack.rangePos20 || 0.5) <= 0.52) {
+        score -= 7;
+        reasons.push("收市未企穩區間上半");
+      }
+      if (dailyPack.breakoutClose) {
+        score += 5;
+        reasons.push("日線接近突破收市");
+      }
+      if ((dailyPack.stretchAtr || 0) >= 3.2) {
+        score -= 10;
+        reasons.push("三日升幅過度延伸");
+      } else if ((dailyPack.stretchAtr || 0) >= 2.4) {
+        score -= 5;
+        reasons.push("短線偏熱，避免高追");
+      }
+      if (dailyPack.insideDay && (stock.longTriggerScore || 0) < 2) {
+        score -= 4;
+        reasons.push("仍在 inside day，未夠觸發");
+      }
       // 多周期對齊：避免逆勢做多
       if (stock.dailyTrend <= -1 && (stock.h4Trend <= 0 || stock.h1Trend <= -1)) {
         score -= 22;
@@ -3974,12 +4222,45 @@
       let score = 0;
       const reasons = [];
       const sectorAlign = calcSectorAlignment(stock, "short");
+      const dailyPack = stock.dailyStructure || {};
       score += (-stock.dailyTrend + 2) * 9;
       score += (-stock.h1Trend + 2) * 7;
       score += (-stock.h4Trend + 2) * 8;
       if (stock.dailyTrend <= -1) reasons.push("日線方向偏空");
       if (stock.h1Trend <= -1) reasons.push("短線結構偏空");
       if (stock.h4Trend <= -1) reasons.push("4H 結構偏空");
+      if (dailyPack.maStackShort) {
+        score += 10;
+        reasons.push("日線均線空頭排列");
+      } else if ((dailyPack.closeVsMa20Atr || 0) <= 0.15 && !dailyPack.ma20SlopeUp) {
+        score += 4;
+        reasons.push("壓住 MA20");
+      } else if ((dailyPack.closeVsMa20Atr || 0) > 0.35) {
+        score -= 10;
+        reasons.push("企返 MA20 上方，空頭未穩");
+      }
+      if ((dailyPack.rangePos20 || 0.5) <= 0.22) {
+        score += 6;
+        reasons.push("收市接近 20 日低位");
+      } else if ((dailyPack.rangePos20 || 0.5) >= 0.48) {
+        score -= 7;
+        reasons.push("收市仍在區間中上部");
+      }
+      if (dailyPack.breakdownClose) {
+        score += 5;
+        reasons.push("日線接近失守收市");
+      }
+      if ((dailyPack.stretchAtr || 0) >= 3.2) {
+        score -= 10;
+        reasons.push("三日跌幅過度延伸");
+      } else if ((dailyPack.stretchAtr || 0) >= 2.4) {
+        score -= 5;
+        reasons.push("短線偏急，避免低追");
+      }
+      if (dailyPack.insideDay && (stock.shortTriggerScore || 0) < 2) {
+        score -= 4;
+        reasons.push("仍在 inside day，未夠觸發");
+      }
       // 多周期對齊：避免逆勢做空
       if (stock.dailyTrend >= 1 && (stock.h4Trend >= 0 || stock.h1Trend >= 1)) {
         score -= 22;
@@ -4140,6 +4421,7 @@
       let score = setup.score;
       const reasons = [...(setup.reasons || [])];
       const sectorAlign = calcSectorAlignment(setup, direction);
+      const dailyPack = setup.dailyStructure || {};
       const breakoutScore = direction === "long" ? (setup.longBreakoutQualityScore || 0) : (setup.shortBreakoutQualityScore || 0);
       const breakoutLabel = direction === "long" ? (setup.longBreakoutQualityLabel || "普通") : (setup.shortBreakoutQualityLabel || "普通");
       const triggerScore = direction === "long" ? (setup.longTriggerScore || 0) : (setup.shortTriggerScore || 0);
@@ -4174,6 +4456,36 @@
       const structurePack = calcStructureCleanliness(setup, direction);
       if (structurePack.score) score += structurePack.score;
       reasons.push(`結構：${structurePack.label}${structurePack.roomAtr != null ? `（${structurePack.roomAtr} ATR 空間）` : ""}`);
+
+      if (direction === "long") {
+        if (dailyPack.maStackLong) score += 4;
+        else if (dailyPack.maStackShort) {
+          score -= 12;
+          reasons.push("日線均線仍屬空頭");
+        }
+        if ((dailyPack.rangePos20 || 0.5) < 0.55) {
+          score -= 5;
+          reasons.push("日線收市未企穩區間強位");
+        }
+        if (dailyPack.breakoutClose && breakoutScore >= 3) {
+          score += 4;
+          reasons.push("日線 close 支持突破延續");
+        }
+      } else {
+        if (dailyPack.maStackShort) score += 4;
+        else if (dailyPack.maStackLong) {
+          score -= 12;
+          reasons.push("日線均線仍屬多頭");
+        }
+        if ((dailyPack.rangePos20 || 0.5) > 0.45) {
+          score -= 5;
+          reasons.push("日線收市未處弱勢區");
+        }
+        if (dailyPack.breakdownClose && breakoutScore >= 3) {
+          score += 4;
+          reasons.push("日線 close 支持跌破延續");
+        }
+      }
 
       const stylePack = classifySetupStyle(setup, direction);
       if (stylePack.boost) score += stylePack.boost;
@@ -4319,6 +4631,7 @@
         </div>
         <div class="candidate-note">RS：${item.rsLabel || "跟大盤同步"} · 板塊：${item.sectorProxy || "--"} (${item.sectorRsLabel || "--"}) · 波動：${item.marketVolatilityLabel || "正常波動"} · Gap：${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}% (${item.gapLabel || "正常"})</div>
         <div class="candidate-note">量能：${mode === "short" ? (item.shortVolumeLabel || "普通") : (item.longVolumeLabel || "普通")} · 結構：${item.structureCleanLabel || "未知"}${item.structureRoomAtr != null ? `（${item.structureRoomAtr} ATR）` : ""} · 風格：${item.setupStyleLabel || "一般"} · RR：${item.rr1 ? item.rr1.toFixed(1) : "--"} (${item.rrLabel || "--"})</div>
+        <div class="candidate-note">日線：${item.dailyStructure?.label || "未知"} · 區間位置：${Math.round((item.dailyStructure?.rangePos20 ?? 0.5) * 100)}% · 3日延伸：${Number(item.dailyStructure?.stretchAtr || 0).toFixed(1)} ATR</div>
         <div class="candidate-note">入場依據：${item.entryBasis || "ATR"} · TP：${item.tpBasis || "ATR"} · 位階：${mode === "short"
           ? `${item.structure?.prevDayLow ? `昨低 ${formatPrice(item.structure.prevDayLow)}` : "昨低 --"} / ${item.structure?.orbLow ? `ORB ${formatPrice(item.structure.orbLow)}` : "ORB --"}`
           : `${item.structure?.prevDayHigh ? `昨高 ${formatPrice(item.structure.prevDayHigh)}` : "昨高 --"} / ${item.structure?.orbHigh ? `ORB ${formatPrice(item.structure.orbHigh)}` : "ORB --"}`}</div>
@@ -4743,13 +5056,15 @@
 
     async function runAll(){
       const polygonKey = deploymentMode.isManagedPolygonProxy ? "" : el.polygonKey.value.trim();
+      const minishareRtAuth = getUsRealtimeAuthCode();
+      const minishareDailyAuth = getUsDailyAuthCode();
       const includeHourly = (el.dataMode?.value || "standard") !== "dailyOnly";
       const includeBenchmarks = (el.includeBenchmarks?.value || "on") !== "off";
       const maxTickers = Number(el.maxTickersPerRun?.value) || 0;
       const tickersAll = parseTickers(el.tickers.value);
       const tickers = maxTickers > 0 ? tickersAll.slice(0, maxTickers) : tickersAll;
-      if (!deploymentMode.isManagedPolygonProxy && !polygonKey){
-        el.statusHint.textContent = "請先填 Massive / Polygon 代理 key。";
+      if (!deploymentMode.isManagedPolygonProxy && !polygonKey && !minishareDailyAuth){
+        el.statusHint.textContent = "請先填 Massive / Polygon 代理 key，或者貼入 minishare 美股日線授權碼。";
         return;
       }
       if (!tickers.length){
@@ -4778,6 +5093,18 @@
 
       const dataset = [];
       latestFinnhubMode = "normal";
+      let realtimeQuoteMap = new Map();
+
+      if (minishareRtAuth) {
+        try {
+          realtimeQuoteMap = await minishareUsRealtimeQuotes(minishareRtAuth, tickers);
+        } catch (e) {
+          errorCounter++;
+          el.errorCount.textContent = String(errorCounter);
+          el.heroErrors.textContent = String(errorCounter);
+          el.statusHint.textContent = `美股實時行情授權碼暫時未用到，先以日線資料繼續。${String(e?.message || e)}`;
+        }
+      }
 
       if (includeBenchmarks) {
         await fetchBenchmarks(polygonKey, priceLookbackDays);
@@ -4853,17 +5180,21 @@
         const symbol = tickers[i];
         const progress = Math.round(((i + 1) / tickers.length) * 100);
         setLoadingState(progress, `LOADING ${progress}%`);
-        el.statusHint.textContent = `拉取中：${i + 1}/${tickers.length} · ${symbol} · 純價格模式`;
+        el.statusHint.textContent = `拉取中：${i + 1}/${tickers.length} · ${symbol} · ${minishareDailyAuth ? "美股日線 + 即時價" : "純價格模式"}`;
 
         let bars = [];
         let hourlyBars = [];
         try {
-          bars = await polygonDailyBars(symbol, polygonKey, fromDate, toDate);
+          bars = minishareDailyAuth
+            ? await minishareUsDailyBars(minishareDailyAuth, symbol, fromDate, toDate)
+            : await polygonDailyBars(symbol, polygonKey, fromDate, toDate);
         } catch (e) {
-          if (isAuthLikeError(e)) {
+          if (isAuthLikeError(e) || /权限不足|权限验证码无效|missing_auth_code/i.test(String(e?.message || e || ""))) {
             el.statusHint.textContent = deploymentMode.isManagedPolygonProxy
-              ? "伺服器端 Massive / Polygon key 無效、已過期，或者權限唔啱。請去 Cloudflare 更新 secret 後再試。"
-              : "Massive / Polygon 代理 Key 無效、已過期，或者權限唔啱。請去設定更新 key 後再試。";
+              ? "伺服器端資料權限無效、已過期，或者權限唔啱。請更新對應授權後再試。"
+              : (minishareDailyAuth
+                ? "minishare 美股日線授權碼無效、未生效，或者權限唔啱。請去設定更新 key 後再試。"
+                : "Massive / Polygon 代理 Key 無效、已過期，或者權限唔啱。請去設定更新 key 後再試。");
             setLoadingState(0, "等待更新");
             return;
           }
@@ -4873,9 +5204,12 @@
           await sleep(polygonDelayMs);
           continue;
         }
+        if (realtimeQuoteMap.has(symbol)) {
+          bars = mergeRealtimeIntoDailyBars(bars, realtimeQuoteMap.get(symbol));
+        }
         await sleep(polygonDelayMs);
 
-        if (includeHourly) {
+        if (includeHourly && polygonKey) {
           try {
             hourlyBars = await polygonHourlyBars(symbol, polygonKey, toDateStr(new Date(Date.now() - 20 * 24 * 3600 * 1000)), toDate);
           } catch (e) {
@@ -4902,6 +5236,7 @@
         const rvol = calcRVOL(bars);
         const weekChange = calcWeekChange(bars);
         const dailyTrend = calcDailyTrend(bars);
+        const dailyStructure = calcDailyStructurePack(bars);
         const h1Trend = hourlyBars.length >= 10 ? calcTrendFromBars(hourlyBars, 8) : dailyTrend;
         const h4Bars = aggregateBars(hourlyBars, 4);
         const h4Trend = h4Bars.length >= 6 ? calcTrendFromBars(h4Bars, 6) : dailyTrend;
@@ -4997,6 +5332,7 @@
           shortVolumeRatio: shortVolume.lastVolRatio,
           sparkBars,
           weekChange,
+          dailyStructure,
           newsSummary: summary,
           newsCount: count,
           newsHeadline: headline,
@@ -5008,7 +5344,7 @@
       latestDataset = dataset.filter(x => x.price > 0);
       latestCompanyNews = [];
       latestMarketNews = [];
-      const newsAuthCode = el.finnhubKey.value.trim();
+      const newsAuthCode = getNewsAuthCode();
       const newsLookbackDays = Number(el.newsLookbackDays.value) || 2;
       try {
         const newsPack = await getMinishareNewsCached(newsAuthCode, newsLookbackDays);
