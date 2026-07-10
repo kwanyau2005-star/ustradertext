@@ -1078,6 +1078,30 @@
 
         <div class="list-card">
           <h2 class="section-title">新聞分類日程表</h2>
+          <div class="tag-row" style="margin:10px 0 14px; gap:10px;">
+            <div class="tag" style="display:flex; align-items:center; gap:10px;">
+              <span style="font-weight:900;">篩選</span>
+              <select id="newsFilterMode" class="topbar-select" style="min-width:160px;">
+                <option value="watchlist_only">只顯示 watchlist</option>
+                <option value="us_only" selected>只顯示影響美股</option>
+                <option value="high_only">只顯示高影響</option>
+                <option value="all">顯示全部</option>
+              </select>
+            </div>
+            <div class="tag" style="display:flex; align-items:center; gap:10px;">
+              <span style="font-weight:900;">搜尋</span>
+              <input id="newsSearch" class="mono" placeholder="ticker / 關鍵字（例：AAPL 或 NVDA,AMD）" style="width:min(420px, 62vw); padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:#e8eef7;" />
+            </div>
+            <label class="tag" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <input id="newsPinHighToggle" type="checkbox" checked style="accent-color:#38bdf8; transform:scale(1.05);" />
+              <span style="font-weight:900;">高影響置頂</span>
+            </label>
+            <label class="tag" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <input id="newsCompactToggle" type="checkbox" checked style="accent-color:#38bdf8; transform:scale(1.05);" />
+              <span style="font-weight:900;">簡化文字（點入睇詳細）</span>
+            </label>
+          </div>
+          <div class="subtext" style="margin:-6px 0 12px;">提示：撳任何一條新聞可以彈出詳細內容；高影響會用藍色發光星星標示。</div>
           <div id="alertsGrid" class="news-calendar"></div>
         </div>
 
@@ -1088,6 +1112,21 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="modal" id="newsModal" aria-hidden="true">
+    <div class="modal-panel panel stock-modal-panel">
+      <div class="modal-head">
+        <div>
+          <div class="badge">新聞詳情</div>
+          <div class="stock-modal-title" id="newsModalTitle">--</div>
+          <p class="subtext" id="newsModalIntro">點「打開原文」可跳轉。</p>
+          <div class="stock-meta-row" id="newsModalMeta"></div>
+        </div>
+        <button class="modal-close" id="closeNewsModalBtn">關閉</button>
+      </div>
+      <div id="newsModalBody" class="stock-news-grid"></div>
+    </div>
   </div>
 
   <div class="modal menu-modal" id="mainMenuModal" aria-hidden="true">
@@ -1449,6 +1488,7 @@
       "openMainMenuBtn","topRunBtn","topExportBtn","quickPresetSelect","mainMenuModal","closeMainMenuBtn",
       "changePolygonKeyBtn","changeFinnhubKeyBtn","openWatchlistModal","openRuntimeModal","openScannerModal","settingsModal","closeModalBtn","modalTitle","modalIntro","modalBadge","modalSectionKeys","modalSectionWatchlist","modalSectionRuntime","modalSectionScanner","modalRunBtn","scannerPresetHint",
       "stockModal","closeStockModalBtn","stockModalTitle","stockModalIntro","stockModalMeta","stockModalBody",
+      "newsFilterMode","newsSearch","newsPinHighToggle","newsCompactToggle","newsModal","closeNewsModalBtn","newsModalTitle","newsModalIntro","newsModalMeta","newsModalBody",
       "statProgressFill","statDataText","statBandwidth","statCount","statImportantNews","statTime","heroLong","heroShort","heroErrors","heroAlerts",
       "marketNqTitle","marketNqSub","marketNqPrice","marketNqChange","marketNqUpdated","marketNqChart","marketSpxTitle","marketSpxSub","marketSpxPrice","marketSpxChange","marketSpxUpdated","marketSpxChart",
       "sampleCount","dominantBias","errorCount","historyRuns","previousScanTime","bestLongTicker","bestShortTicker","bestWatchTicker","bestEventTag","trackedDelta","perf1d","perf3d","perf5d",
@@ -1483,6 +1523,8 @@
     };
     let latestFinnhubMode = "normal";
     let errorCounter = 0;
+    let latestNewsView = [];
+    const newsUiKey = "dashboardNewsUiV1";
     let currentScannerPresetKey = "balanced";
     const selectedSymbols = new Set();
     const scanHistoryKey = "tradingDashboardScanHistory";
@@ -2602,6 +2644,41 @@
       el.stockModal.classList.remove("show");
       el.stockModal.setAttribute("aria-hidden", "true");
       currentStockModalSymbol = "";
+    }
+
+    function openNewsModal(item){
+      if (!el.newsModal) return;
+      const time = item.datetime ? new Date(item.datetime * 1000) : null;
+      const levelText = item.importance === "high" ? "高影響" : item.importance === "medium" ? "中影響" : "一般";
+      const tone = inferTone(item);
+      const impact = impactPercent(item);
+      const groups = inferImpactGroups(item);
+      const star = item.importance === "high" ? "★" : "☆";
+
+      el.newsModalTitle.textContent = `${star} ${item.headline || "無標題"}`;
+      el.newsModalIntro.textContent = `${time ? time.toLocaleString("zh-HK") : ""} · ${item.source || "未知來源"} · ${item.category === "general" ? "市場新聞" : "公司新聞"}`;
+
+      const chips = [];
+      chips.push(`<span class="chip">${levelText}</span>`);
+      chips.push(`<span class="chip">影響 ${impact}%</span>`);
+      chips.push(`<span class="chip">方向 ${tone}</span>`);
+      (item.affectedSymbols || []).slice(0, 12).forEach(sym => chips.push(`<span class="chip">影響：${escapeHtml(sym)}</span>`));
+      groups.forEach(g => chips.push(`<span class="chip">類股：${escapeHtml(g)}</span>`));
+      if (item.url) chips.push(`<span class="chip"><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">打開原文</a></span>`);
+      el.newsModalMeta.innerHTML = chips.join("");
+
+      el.newsModalBody.innerHTML = `
+        <div class="news-body">
+          ${escapeHtml(item.summary || "").replace(/\n/g, "<br/>")}
+        </div>
+      `;
+
+      el.newsModal.classList.add("show");
+      el.newsModal.setAttribute("aria-hidden", "false");
+    }
+    function closeNewsModal(){
+      el.newsModal?.classList.remove("show");
+      el.newsModal?.setAttribute("aria-hidden", "true");
     }
     function findScanItem(symbol){
       return getSelectableScanItems().find(item => item.symbol === symbol) || null;
@@ -4326,65 +4403,161 @@
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
     }
+    function shortText(text, maxLen=120){
+      const raw = String(text || "").replace(/\s+/g, " ").trim();
+      if (!raw) return "";
+      if (raw.length <= maxLen) return raw;
+      return raw.slice(0, Math.max(0, maxLen - 1)) + "…";
+    }
+    function getUsSymbolSet(){
+      const set = new Set((latestDataset || []).map(x => String(x.symbol || "").toUpperCase()).filter(Boolean));
+      ["SPY","QQQ","DIA","IWM","XLK","XLF","XLE","XLY","XLP","XLV","XLI","XLB","XLU","SMH"].forEach(s => set.add(s));
+      return set;
+    }
+    function getWatchlistSymbolSet(){
+      const listText = el.tickers?.value || "";
+      const tickers = parseTickers(listText);
+      return new Set(tickers.map(s => String(s || "").toUpperCase()).filter(Boolean));
+    }
+    function isUsNews(item){
+      const us = getUsSymbolSet();
+      const syms = (item.affectedSymbols || []).map(s => String(s || "").toUpperCase());
+      return syms.some(sym => us.has(sym));
+    }
+    function isWatchlistNews(item){
+      const wl = getWatchlistSymbolSet();
+      if (!wl.size) return false;
+      const syms = (item.affectedSymbols || []).map(s => String(s || "").toUpperCase());
+      return syms.some(sym => wl.has(sym));
+    }
+    function parseNewsSearchQuery(raw){
+      const q = String(raw || "").trim();
+      if (!q) return { type:"none", tokens:[] };
+      // ticker list: AAPL, NVDA AMD
+      const parts = q.split(/[,\s]+/g).map(s => s.trim()).filter(Boolean);
+      const allTickerLike = parts.length && parts.every(p => /^[A-Za-z.\-]{1,8}$/.test(p));
+      if (allTickerLike) {
+        return { type:"symbols", tokens: parts.map(s => s.toUpperCase()) };
+      }
+      return { type:"text", tokens:[q.toLowerCase()] };
+    }
+    function matchNewsSearch(item, query){
+      if (!query || query.type === "none") return true;
+      const syms = (item.affectedSymbols || []).map(s => String(s || "").toUpperCase());
+      if (query.type === "symbols") {
+        return query.tokens.some(t => syms.includes(t)) || query.tokens.some(t => (item.headline || "").toUpperCase().includes(t));
+      }
+      const hay = `${item.headline || ""} ${item.summary || ""} ${(item.affectedSymbols || []).join(" ")}`.toLowerCase();
+      return query.tokens.some(t => hay.includes(t));
+    }
+
+    function loadNewsUiSettings(){
+      try {
+        const raw = localStorage.getItem(newsUiKey);
+        if (!raw) return;
+        const cfg = JSON.parse(raw);
+        if (cfg.filter && el.newsFilterMode) el.newsFilterMode.value = cfg.filter;
+        if (typeof cfg.compact === "boolean" && el.newsCompactToggle) el.newsCompactToggle.checked = cfg.compact;
+        if (typeof cfg.pinHigh === "boolean" && el.newsPinHighToggle) el.newsPinHighToggle.checked = cfg.pinHigh;
+        if (typeof cfg.search === "string" && el.newsSearch) el.newsSearch.value = cfg.search;
+      } catch {}
+    }
+    function saveNewsUiSettings(){
+      try {
+        const cfg = {
+          filter: el.newsFilterMode?.value || "us_only",
+          compact: !!el.newsCompactToggle?.checked,
+          pinHigh: !!el.newsPinHighToggle?.checked,
+          search: String(el.newsSearch?.value || "")
+        };
+        localStorage.setItem(newsUiKey, JSON.stringify(cfg));
+      } catch {}
+    }
     function renderNewsCalendar(container, items){
       if (!items.length){
         container.innerHTML = `<div class="news-empty">暫時未有新聞。</div>`;
         return;
       }
+      latestNewsView = items;
+      const compact = !!el.newsCompactToggle?.checked;
+      const pinHigh = !!el.newsPinHighToggle?.checked;
+
+      const pinned = pinHigh
+        ? items.filter(item => item.importance === "high").sort((a,b) => (b.datetime || 0) - (a.datetime || 0)).slice(0, 18)
+        : [];
+      const rest = pinHigh ? items.filter(item => item.importance !== "high") : items;
+
       const groups = new Map();
-      items.forEach(item => {
+      rest.forEach(item => {
         const key = formatNewsDateKey(item.datetime);
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       });
 
       const rows = [];
+
+      const pushNewsRow = (item, groupLabelOverride) => {
+        const idx = latestNewsView.indexOf(item);
+        const levelClass = item.importance === "high" ? "impact-high" : item.importance === "medium" ? "impact-medium" : "impact-low";
+        const levelText = item.importance === "high" ? "高影響" : item.importance === "medium" ? "中影響" : "一般";
+        const tone = inferTone(item);
+        const impact = impactPercent(item);
+        const star = item.importance === "high" ? `<span class="news-star">★</span>` : `<span class="news-star is-dim">★</span>`;
+        const groups2 = inferImpactGroups(item);
+        const displayTitle = compact ? shortText(item.headline || "", 64) : String(item.headline || "");
+        const displaySummary = compact ? shortText(item.summary || "", 120) : String(item.summary || "");
+        rows.push(`
+          <tr class="news-row" data-news-index="${idx}">
+            <td style="width:34px; text-align:center; vertical-align:top; padding-top:14px;">${star}</td>
+            <td>
+              <div class="news-time">${formatNewsTime(item.datetime)}</div>
+              <div class="news-source">${escapeHtml(item.source || "未知來源")}</div>
+            </td>
+            <td>${groupLabelOverride || (item.category === "general" ? "市場新聞" : "公司新聞")}</td>
+            <td>
+              <div class="news-symbols">
+                ${(item.affectedSymbols || []).map(sym => `<span class="tag">${escapeHtml(sym)}</span>`).join("")}
+              </div>
+              ${groups2.length ? `
+                <div class="news-impact-groups">
+                  ${groups2.map(label => `<span class="tag tag-impact">類股：${escapeHtml(label)}</span>`).join("")}
+                </div>
+              ` : ""}
+            </td>
+            <td><span class="impact-pill ${levelClass}">${levelText}</span></td>
+            <td>
+              <div><span class="impact-pill impact-neutral">${impact}%</span></div>
+              <div class="news-source" style="margin-top:6px;">${escapeHtml(tone)}</div>
+            </td>
+            <td>
+              <div class="news-title">${escapeHtml(displayTitle || "無標題")}</div>
+              <div class="news-summary">${escapeHtml(displaySummary || "")}</div>
+            </td>
+            <td class="news-link-cell">
+              ${item.url ? `<a class="link" href="${item.url}" target="_blank" rel="noopener noreferrer">打開原文</a>` : "—"}
+            </td>
+          </tr>
+        `);
+      };
+
+      if (pinned.length) {
+        rows.push(`
+          <tr class="news-group-row">
+            <td colspan="8">⭐ 高影響置頂（${pinned.length}）</td>
+          </tr>
+        `);
+        pinned.forEach(item => pushNewsRow(item, "置頂"));
+      }
+
       groups.forEach((groupItems, dateKey) => {
         rows.push(`
           <tr class="news-group-row">
             <td colspan="8">${dateKey}</td>
           </tr>
         `);
-        groupItems.forEach(item => {
-          const levelClass = item.importance === "high" ? "impact-high" : item.importance === "medium" ? "impact-medium" : "impact-low";
-          const levelText = item.importance === "high" ? "高影響" : item.importance === "medium" ? "中影響" : "一般";
-          const tone = inferTone(item);
-          const impact = impactPercent(item);
-          const star = item.importance === "high" ? `<span class="news-star">★</span>` : `<span class="news-star is-dim">★</span>`;
-          const groups = inferImpactGroups(item);
-          rows.push(`
-            <tr>
-              <td style="width:34px; text-align:center; vertical-align:top; padding-top:14px;">${star}</td>
-              <td>
-                <div class="news-time">${formatNewsTime(item.datetime)}</div>
-                <div class="news-source">${escapeHtml(item.source || "未知來源")}</div>
-              </td>
-              <td>${item.category === "general" ? "市場新聞" : "公司新聞"}</td>
-              <td>
-                <div class="news-symbols">
-                  ${(item.affectedSymbols || []).map(sym => `<span class="tag">${escapeHtml(sym)}</span>`).join("")}
-                </div>
-                ${groups.length ? `
-                  <div class="news-impact-groups">
-                    ${groups.map(label => `<span class="tag tag-impact">類股：${escapeHtml(label)}</span>`).join("")}
-                  </div>
-                ` : ""}
-              </td>
-              <td><span class="impact-pill ${levelClass}">${levelText}</span></td>
-              <td>
-                <div><span class="impact-pill impact-neutral">${impact}%</span></div>
-                <div class="news-source" style="margin-top:6px;">${escapeHtml(tone)}</div>
-              </td>
-              <td>
-                <div class="news-title">${escapeHtml(item.headline || "無標題")}</div>
-                <div class="news-summary">${escapeHtml(item.summary || "無摘要")}</div>
-              </td>
-              <td class="news-link-cell">
-                ${item.url ? `<a class="link" href="${item.url}" target="_blank" rel="noopener noreferrer">打開原文</a>` : "—"}
-              </td>
-            </tr>
-          `);
-        });
+        groupItems
+          .sort((a,b) => (b.datetime || 0) - (a.datetime || 0))
+          .forEach(item => pushNewsRow(item));
       });
 
       container.innerHTML = `
@@ -4406,6 +4579,18 @@
           </tbody>
         </table>
       `;
+
+      // 點新聞彈出詳情
+      container.querySelectorAll("[data-news-index]").forEach(row => {
+        row.addEventListener("click", (event) => {
+          // 如果點中連結就唔攔住
+          const target = event.target;
+          if (target && target.closest && target.closest("a")) return;
+          const idx = Number(row.getAttribute("data-news-index"));
+          const item = latestNewsView[idx];
+          if (item) openNewsModal(item);
+        });
+      });
     }
 
     function renderNewsPage(){
@@ -4420,7 +4605,20 @@
         })
         .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
 
-      if (!allNews.length){
+      // 篩選：只顯示影響美股 / 高影響
+      const filter = el.newsFilterMode?.value || "us_only";
+      const searchQuery = parseNewsSearchQuery(el.newsSearch?.value || "");
+      let view = allNews;
+      if (filter === "watchlist_only") {
+        view = view.filter(isWatchlistNews);
+      } else if (filter === "us_only") {
+        view = view.filter(isUsNews);
+      } else if (filter === "high_only") {
+        view = view.filter(item => item.importance === "high").filter(isUsNews);
+      }
+      view = view.filter(item => matchNewsSearch(item, searchQuery));
+
+      if (!view.length){
         if (latestFinnhubMode === "missing") {
           el.alertsGrid.innerHTML = `<div class="news-empty">未設定 minishare 授權碼，所以未能拉新聞。</div>`;
         } else if (latestFinnhubMode === "unauthorized") {
@@ -4428,16 +4626,16 @@
         } else if (latestFinnhubMode === "error" || errorCounter > 0) {
           el.alertsGrid.innerHTML = `<div class="news-empty">今輪新聞拉取失敗或被限速，請留意上方「API失敗 / 限速」，再試一次或調高新聞間隔。</div>`;
         } else {
-          el.alertsGrid.innerHTML = `<div class="news-empty">今輪真係冇拉到相關新聞，可能係 watchlist 近幾日冇公司新聞。</div>`;
+          el.alertsGrid.innerHTML = `<div class="news-empty">今輪未搵到「影響美股」嘅新聞。你可以改篩選做「顯示全部」睇返原始新聞。</div>`;
         }
       } else {
-        renderNewsCalendar(el.alertsGrid, allNews);
+        renderNewsCalendar(el.alertsGrid, view);
       }
 
-      const uniqueSymbols = uniq(allNews.flatMap(item => item.affectedSymbols || []).filter(sym => sym !== "市場整體" && sym !== "未明確"));
-      const highImpactCount = allNews.filter(item => item.importance === "high").length;
+      const uniqueSymbols = uniq(view.flatMap(item => item.affectedSymbols || []).filter(sym => sym !== "市場整體" && sym !== "未明確"));
+      const highImpactCount = view.filter(item => item.importance === "high").length;
 
-      el.importantCount.textContent = allNews.length;
+      el.importantCount.textContent = view.length;
       el.companyNewsCount.textContent = highImpactCount;
       el.marketNewsCount.textContent = uniqueSymbols.length;
       el.statImportantNews.textContent = latestAlerts.length;
@@ -4445,7 +4643,7 @@
 
       el.tagRow.innerHTML = "";
       [
-        `全新聞 ${allNews.length}`,
+        `全新聞 ${view.length}`,
         `高影響 ${highImpactCount}`,
         `受影響股票 ${uniqueSymbols.length}`
       ].forEach(tag => {
@@ -4457,7 +4655,7 @@
 
       el.jsonPreview.textContent = JSON.stringify({
         alerts: latestAlerts,
-        allNews: allNews.slice(0, 40)
+        allNews: view.slice(0, 40)
       }, null, 2);
     }
 
@@ -4993,6 +5191,30 @@
     });
     el.closeModalBtn.addEventListener("click", closeSettingsModal);
     el.closeStockModalBtn.addEventListener("click", closeStockModal);
+    el.closeNewsModalBtn?.addEventListener("click", closeNewsModal);
+    el.newsModal?.addEventListener("click", (event) => {
+      if (event.target === el.newsModal) closeNewsModal();
+    });
+    el.newsFilterMode?.addEventListener("change", () => {
+      saveNewsUiSettings();
+      renderNewsPage();
+    });
+    el.newsCompactToggle?.addEventListener("change", () => {
+      saveNewsUiSettings();
+      renderNewsPage();
+    });
+    let newsSearchTimer = null;
+    el.newsSearch?.addEventListener("input", () => {
+      clearTimeout(newsSearchTimer);
+      newsSearchTimer = setTimeout(() => {
+        saveNewsUiSettings();
+        renderNewsPage();
+      }, 180);
+    });
+    el.newsPinHighToggle?.addEventListener("change", () => {
+      saveNewsUiSettings();
+      renderNewsPage();
+    });
     scannerPresetButtons.forEach(btn => {
       btn.addEventListener("click", () => applyScannerPreset(btn.dataset.scannerPreset));
     });
@@ -5022,11 +5244,13 @@
         closeSettingsModal();
         closeMainMenu();
         closeStockModal();
+        closeNewsModal();
       }
     });
 
     loadKeys();
     loadRuntimeSettings();
+    loadNewsUiSettings();
     el.dataMode?.addEventListener("change", saveRuntimeSettings);
     el.includeBenchmarks?.addEventListener("change", saveRuntimeSettings);
     el.maxTickersPerRun?.addEventListener("change", saveRuntimeSettings);
