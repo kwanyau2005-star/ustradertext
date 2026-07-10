@@ -3327,9 +3327,7 @@
       const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
       const bgLineColor = theme.midColor || "rgba(255,255,255,.06)";
       const series = Array.isArray(opts?.series) ? opts.series : [];
-      const hasSeriesLegend = series.some(s => Array.isArray(s?.values) && s.values.length);
-      // Keep prices on the RIGHT, indicators labels on the LEFT
-      const chartPad = { top: 8, right: 56, bottom: 18, left: hasSeriesLegend ? 70 : 56 };
+      const chartPad = { top: 8, right: 56, bottom: 18, left: 56 };
       const plotW = Math.max(10, width - chartPad.left - chartPad.right);
       const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
       const rawMinL = Math.min(...bars.map(b => b.l));
@@ -3371,8 +3369,6 @@
         parts.push(`<line class="mini-wick" x1="${x + bodyW/2}" y1="${yHigh}" x2="${x + bodyW/2}" y2="${yLow}" stroke="${color}" />`);
         parts.push(`<rect class="mini-body" x="${x}" y="${yTop}" width="${bodyW}" height="${bodyH}" fill="${color}" opacity="0.92" />`);
       }
-      const legendParts = [];
-      let legendRow = 0;
       series.forEach(s => {
         if (!s?.values?.length) return;
         const points = [];
@@ -3389,21 +3385,7 @@
           const sw = s.width || 2;
           parts.push(`<path d="${d}" fill="none" stroke="${s.color || "rgba(255,255,255,.7)"}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"${dash} opacity="0.95" />`);
         }
-        // legend at left, stacked vertically to avoid overlap
-        const last = [...(s.values || [])].reverse().find(v => Number.isFinite(v));
-        if (s.label && legendRow < 6){
-          const text = `${s.label}:${Number.isFinite(last) ? formatPrice(last) : "--"}`;
-          const ly = 14 + legendRow * 11;
-          const color = s.color || "#fff";
-          legendParts.push(`<line x1="6" y1="${ly - 3}" x2="14" y2="${ly - 3}" stroke="${color}" stroke-width="${s.width || 2}" ${s.dash ? `stroke-dasharray="5 4"` : ""} />`);
-          legendParts.push(`<text x="17" y="${ly}" fill="${color}" font-size="10" font-weight="900">${escapeHtml(text)}</text>`);
-          legendRow += 1;
-        }
       });
-      const legendBlockBottom = legendRow > 0 ? (10 + legendRow * 11) : 0;
-      if (legendParts.length){
-        parts.push(`<g opacity="0.92">${legendParts.join("")}</g>`);
-      }
       const overlays = Array.isArray(opts?.overlays) ? opts.overlays : [];
       const labelYs = [];
       overlays
@@ -3417,7 +3399,6 @@
           if (label) {
             // Avoid label overlap: if two levels are too close, keep the line but hide the label.
             if (labelYs.some(prevY => Math.abs(prevY - y) < 14)) label = "";
-            else if (legendBlockBottom && y <= legendBlockBottom + 4) label = "";
             else labelYs.push(y);
           }
           if (label) {
@@ -3625,7 +3606,6 @@
       const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
       const midColor = theme.midColor || "rgba(255,255,255,.06)";
       const series = Array.isArray(opts.series) ? opts.series : [];
-      const hasSeriesLegend = series.some(s => Array.isArray(s?.values) && s.values.length);
       drawRoundRect(ctx, x, y, w, h, 14);
       ctx.fillStyle = theme.background || "rgba(12,16,22,0.88)";
       ctx.fill();
@@ -3633,7 +3613,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       if (!Array.isArray(bars) || bars.length < 2) return;
-      const chartPad = { top: 10, right: 56, bottom: 20, left: hasSeriesLegend ? 70 : 56 };
+      const chartPad = { top: 10, right: 56, bottom: 20, left: 56 };
       const rawMinL = Math.min(...bars.map(b => b.l));
       const rawMaxH = Math.max(...bars.map(b => b.h));
       const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
@@ -3696,8 +3676,7 @@
         drawRoundRect(ctx, bx, yyTop, bodyW, bodyH, 1.2);
         ctx.fill();
       });
-      // Series overlays (MA / VWAP) -> left stacked legend
-      let legendRow = 0;
+      // Series overlays (MA / VWAP)
       series.forEach(s => {
         if (!s?.values?.length) return;
         const color = s.color || "rgba(255,255,255,.7)";
@@ -3722,25 +3701,7 @@
         if (started) ctx.stroke();
         ctx.setLineDash([]);
 
-        const last = [...s.values].reverse().find(v => Number.isFinite(v));
-        if (s.label && legendRow < 6){
-          const text = `${s.label}:${Number.isFinite(last) ? formatPrice(last) : "--"}`;
-          const ly = y + 14 + legendRow * 11;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = s.width || 2;
-          if (s.dash) ctx.setLineDash([5, 4]); else ctx.setLineDash([]);
-          ctx.beginPath();
-          ctx.moveTo(x + 6, ly - 3);
-          ctx.lineTo(x + 14, ly - 3);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.font = "900 10px Arial, PingFang TC, Microsoft JhengHei, sans-serif";
-          ctx.fillStyle = color;
-          ctx.fillText(text, x + 17, ly);
-          legendRow += 1;
-        }
       });
-      const legendBlockBottom = legendRow > 0 ? (y + 10 + legendRow * 11) : 0;
       const overlays = Array.isArray(opts.overlays) ? opts.overlays : [];
       const labelYs = [];
       overlays.filter(o => o && Number.isFinite(o.value)).forEach(o => {
@@ -3756,7 +3717,6 @@
         let label = o.label || "";
         if (label) {
           if (labelYs.some(prevY => Math.abs(prevY - yy) < 14)) label = "";
-          else if (legendBlockBottom && yy <= legendBlockBottom + 4) label = "";
           else labelYs.push(yy);
         }
         if (label) {
@@ -4948,6 +4908,7 @@
       const filter = el.newsFilterMode?.value || "us_only";
       const searchQuery = parseNewsSearchQuery(el.newsSearch?.value || "");
       let view = allNews;
+      let fallbackNote = "";
       if (filter === "watchlist_only") {
         view = view.filter(isWatchlistNews);
       } else if (filter === "us_only") {
@@ -4956,6 +4917,16 @@
         view = view.filter(item => item.importance === "high").filter(isUsNews);
       }
       view = view.filter(item => matchNewsSearch(item, searchQuery));
+
+      // 如果其實有新聞，只係被過濾到 0 條，就自動回退顯示全部，避免用家誤會「冇新聞」
+      if (!view.length && allNews.length && searchQuery.type === "none" && filter !== "all") {
+        view = allNews;
+        fallbackNote = filter === "watchlist_only"
+          ? "今輪未命中 watchlist 新聞，已自動顯示全部新聞。"
+          : filter === "high_only"
+          ? "今輪未命中高影響美股新聞，已自動顯示全部新聞。"
+          : "今輪未命中已識別美股新聞，已自動顯示全部新聞。";
+      }
 
       if (!view.length){
         if (latestFinnhubMode === "missing") {
@@ -4969,6 +4940,9 @@
         }
       } else {
         renderNewsCalendar(el.alertsGrid, view);
+        if (fallbackNote) {
+          el.alertsGrid.insertAdjacentHTML("afterbegin", `<div class="news-empty" style="margin-bottom:10px;">${fallbackNote}</div>`);
+        }
       }
 
       const uniqueSymbols = uniq(view.flatMap(item => item.affectedSymbols || []).filter(sym => sym !== "市場整體" && sym !== "未明確"));
@@ -4991,6 +4965,12 @@
         div.textContent = tag;
         el.tagRow.appendChild(div);
       });
+      if (fallbackNote) {
+        const div = document.createElement("div");
+        div.className = "tag";
+        div.textContent = "已自動回退顯示全部";
+        el.tagRow.appendChild(div);
+      }
 
       el.jsonPreview.textContent = JSON.stringify({
         alerts: latestAlerts,
