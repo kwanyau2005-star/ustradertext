@@ -655,10 +655,40 @@
       margin-top:14px;
     }
     .news-item{
+      display:flex;
+      gap:10px;
       padding:12px 12px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,.08);
       background:linear-gradient(180deg, rgba(18,23,31,.82), rgba(12,16,22,.92));
+    }
+    .news-item-left{
+      width:22px;
+      flex:0 0 22px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding-top:2px;
+    }
+    .news-star{
+      display:inline-flex;
+      width:18px;
+      height:18px;
+      align-items:center;
+      justify-content:center;
+      font-size:14px;
+      font-weight:1000;
+      color:#38bdf8;
+      text-shadow:
+        0 0 10px rgba(56,189,248,.95),
+        0 0 22px rgba(56,189,248,.55);
+      filter:drop-shadow(0 0 12px rgba(56,189,248,.55));
+      opacity:.95;
+    }
+    .news-star.is-dim{
+      opacity:.12;
+      filter:none;
+      text-shadow:none;
     }
     .news-item-head{
       display:flex;
@@ -666,6 +696,7 @@
       gap:10px;
       align-items:flex-start;
       margin-bottom:6px;
+      flex:1;
     }
     .news-item-title{
       font-weight:900;
@@ -712,6 +743,12 @@
       background:rgba(255,255,255,.03);
       border:1px solid rgba(255,255,255,.07);
     }
+    .tag-impact{
+      background:rgba(56,189,248,.10);
+      border-color:rgba(56,189,248,.22);
+      color:#bae6fd;
+    }
+    .news-impact-groups{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px}
     .snapshot pre{
       white-space:pre-wrap;
       word-break:break-word;
@@ -942,7 +979,7 @@
       </section>
       <section class="hero panel">
         <div>
-          <div class="badge">Massive / Polygon 純價格測試</div>
+          <div class="badge">Massive / Polygon + minishare</div>
           <div class="stats">
             <div class="stat">
               <div class="k">資料狀態</div>
@@ -1087,8 +1124,8 @@
               <span class="small">永久保存到本機，用 prompt 貼一次就得</span>
             </button>
             <button class="menu-btn" id="changeFinnhubKeyBtn">
-              更改 Finnhub Key（股票消息）
-              <span class="small">只影響點股票卡彈窗拉消息</span>
+              更改 minishare 授權碼（新聞）
+              <span class="small">影響新聞頁同股票卡消息彈窗</span>
             </button>
             <button class="menu-btn" id="openWatchlistModal">
               Watchlist
@@ -1143,8 +1180,8 @@
               <input id="polygonKey" type="password" placeholder="只供 localhost / 本機模式使用" />
             </div>
             <div>
-              <label for="finnhubKey">Finnhub API Key（用於股票消息彈窗）</label>
-              <input id="finnhubKey" type="password" placeholder="貼入 Finnhub key（只在你點股票彈窗時先拉消息）" />
+              <label for="finnhubKey">minishare 授權碼（用於新聞快訊 / 長新聞）</label>
+              <input id="finnhubKey" type="password" placeholder="貼入 minishare 授權碼（用於新聞頁與股票消息）" />
             </div>
           </div>
           <div class="button-row">
@@ -1162,7 +1199,7 @@
             <button class="primary" id="modalRunBtn">更新數據</button>
           </div>
           <div class="subtext" style="margin-top:10px;">
-            建議先放 10-30 隻。依家係純價格測試模式，只會拉 Massive / Polygon 價格與趨勢，新聞同財報暫停。
+            建議先放 10-30 隻。依家會拉 Massive / Polygon 價格趨勢，同時接入 minishare 新聞快訊 / 長新聞。
           </div>
         </section>
 
@@ -1189,7 +1226,7 @@
             </div>
             <div>
               <label for="newsLookbackDays">新聞回看（日）</label>
-              <input id="newsLookbackDays" type="number" value="5" min="1" max="30" />
+              <input id="newsLookbackDays" type="number" value="2" min="1" max="30" />
             </div>
             <div>
               <label for="maxTickersPerRun">每次最多處理（0=全部）</label>
@@ -1200,7 +1237,7 @@
               <input id="polygonDelayMs" type="number" value="180" min="0" max="3000" />
             </div>
             <div>
-              <label for="finnhubDelayMs">Finnhub 間隔（ms）</label>
+              <label for="finnhubDelayMs">新聞接口間隔（ms）</label>
               <input id="finnhubDelayMs" type="number" value="2500" min="200" max="5000" />
             </div>
           </div>
@@ -1541,7 +1578,7 @@
       localStorage.setItem("dashboardFinnhubKey", el.finnhubKey.value.trim());
       applyKeyUiState();
       el.statusHint.textContent = deploymentMode.isManagedPolygonProxy
-        ? "Cloudflare 模式：Massive key 由伺服器管理；本機只保存 Finnhub key。"
+        ? "Render 模式：Massive key 由伺服器管理；本機只保存 minishare 授權碼。"
         : "Keys 已永久儲存到本機瀏覽器。";
     }
 
@@ -1549,7 +1586,7 @@
       // 你想「直接喺度改」而唔經輸入欄：用網址一次性導入 key
       // 用法（導入後會自動清走 hash，避免 key 留喺網址）：
       // Massive/Polygon：.../us-trading-dashboard.html#pk=YOUR_KEY
-      // Finnhub：        .../us-trading-dashboard.html#fh=YOUR_KEY
+      // minishare：     .../us-trading-dashboard.html#fh=YOUR_TOKEN
       const hash = String(location.hash || "").replace(/^#/, "");
       if (!hash) return false;
       const params = new URLSearchParams(hash);
@@ -1614,7 +1651,7 @@
       el.finnhubKey.value = "";
       applyKeyUiState();
       el.statusHint.textContent = deploymentMode.isManagedPolygonProxy
-        ? "已清除本機 Finnhub key。Massive key 由伺服器端管理。"
+        ? "已清除本機 minishare 授權碼。Massive key 由伺服器端管理。"
         : "本機已清除已保存 Keys。";
     }
 
@@ -1649,8 +1686,8 @@
         el.statusHint.textContent = "伺服器代理模式：Massive / Polygon key 唔喺前端改，請去 Render 設定環境變數。";
         return;
       }
-      const title = kind === "polygon" ? "貼入 Massive / Polygon 代理 Key" : "貼入 Finnhub API Key";
-      const example = kind === "polygon" ? "例如：RES-XXXX-XXXX..." : "例如：xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+      const title = kind === "polygon" ? "貼入 Massive / Polygon 代理 Key" : "貼入 minishare 授權碼";
+      const example = kind === "polygon" ? "例如：RES-XXXX-XXXX..." : "例如：K48p6c7MmD......";
       const current = kind === "polygon"
         ? (localStorage.getItem("dashboardPolygonKey") || "")
         : (localStorage.getItem("dashboardFinnhubKey") || "");
@@ -2072,6 +2109,7 @@
       const stock20 = calcPeriodReturn(stockBars, 20);
       const etf5 = etfBars ? calcPeriodReturn(etfBars, 5) : 0;
       const etf20 = etfBars ? calcPeriodReturn(etfBars, 20) : 0;
+      const etfTrend = etfBars ? calcDailyTrend(etfBars) : 0;
       const composite = (stock5 - etf5) * 0.45 + (stock20 - etf20) * 0.55;
       const label = composite >= 3.5 ? "強過板塊"
         : composite >= 1 ? "略強過板塊"
@@ -2081,9 +2119,42 @@
       return {
         sectorProxy: best.etf || "",
         sectorCorr: best.corr || 0,
+        sectorTrend: etfTrend,
+        sectorTrendLabel: trendLabel(etfTrend),
+        sector5Change: etf5,
+        sector20Change: etf20,
         sectorRsComposite: composite,
         sectorRsLabel: label
       };
+    }
+    function calcSectorAlignment(stock, direction){
+      const proxy = stock.sectorProxy || "";
+      const corr = stock.sectorCorr || 0;
+      const sectorTrend = stock.sectorTrend || 0;
+      const rs = stock.sectorRsComposite || 0;
+      if (!proxy) return { score:0, label:"未找到板塊代理", confirmed:false, conflicted:false };
+      if (corr < 0.35) return { score:0, label:`${proxy} 關聯偏低`, confirmed:false, conflicted:false };
+      const confirmed = direction === "long" ? sectorTrend >= 1 : sectorTrend <= -1;
+      const conflicted = direction === "long" ? sectorTrend <= -1 : sectorTrend >= 1;
+      let score = 0;
+      let label = `${proxy} ${stock.sectorTrendLabel || "中性"}`;
+      if (confirmed) {
+        score += corr >= 0.6 ? 8 : 5;
+        label = `${proxy} 同步${direction === "long" ? "偏強" : "偏弱"}`;
+      } else if (conflicted) {
+        score -= corr >= 0.6 ? 14 : 9;
+        label = `${proxy} 逆向${direction === "long" ? "偏空" : "偏多"}`;
+      } else {
+        score -= 2;
+      }
+      if (direction === "long" && rs <= -2) {
+        score -= 4;
+        label += " · 個股弱過板塊";
+      } else if (direction === "short" && rs >= 2) {
+        score -= 4;
+        label += " · 個股強過板塊";
+      }
+      return { score, label, confirmed, conflicted };
     }
     function calcMarketRegime(qqqDaily=[], spyDaily=[], qqqHourly=[], spyHourly=[]){
       const qqqDailyTrend = calcDailyTrend(qqqDaily);
@@ -2440,43 +2511,87 @@
       return { rr, label };
     }
 
-    async function finnhubCompanyNews(ticker, apiKey, fromDate, toDate){
-      const url = `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(ticker)}&from=${fromDate}&to=${toDate}&token=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`${ticker} Finnhub news HTTP ${res.status}`);
-      const json = await res.json();
-      if (json && typeof json === "object" && !Array.isArray(json) && json.error) {
-        throw new Error(String(json.error));
+    function formatNewsDateTime(date){
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      const ss = String(date.getSeconds()).padStart(2, "0");
+      return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+    }
+    function parseArticleTimestamp(value){
+      if (typeof value === "number" && Number.isFinite(value)) return value > 1e12 ? Math.floor(value / 1000) : value;
+      const date = new Date(String(value || "").trim().replace(/\//g, "-"));
+      return Number.isNaN(date.getTime()) ? 0 : Math.floor(date.getTime() / 1000);
+    }
+    function extractMinishareRows(payload){
+      const data = payload?.data;
+      const fields = Array.isArray(data?.fields) ? data.fields : [];
+      const items = Array.isArray(data?.items) ? data.items : [];
+      return items.map(row => {
+        if (!Array.isArray(row)) return row;
+        const out = {};
+        fields.forEach((field, idx) => {
+          out[field] = row[idx];
+        });
+        return out;
+      });
+    }
+    async function minishareApi(endpoint, authCode, params = {}){
+      const body = { params };
+      if (authCode) body.auth_code = authCode;
+      const res = await fetch(`/api/minishare/${encodeURIComponent(endpoint)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success === false) {
+        throw new Error(String(json?.error || json?.message || `${endpoint} HTTP ${res.status}`));
       }
-      return Array.isArray(json) ? json : [];
+      return json;
     }
-    async function finnhubProfile2(ticker, apiKey){
-      const url = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(ticker)}&token=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`${ticker} Finnhub profile HTTP ${res.status}`);
-      const json = await res.json();
-      return json && typeof json === "object" ? json : {};
+    function normalizeMinishareQuickNews(row){
+      const content = String(row?.content || "").trim();
+      return {
+        headline: content.slice(0, 80) || "快訊",
+        summary: content,
+        source: "快訊",
+        datetime: parseArticleTimestamp(row?.datetime),
+        url: ""
+      };
     }
-    async function finnhubEarningsCalendar(apiKey, fromDate, toDate){
-      const url = `https://finnhub.io/api/v1/calendar/earnings?from=${fromDate}&to=${toDate}&token=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Earnings calendar HTTP ${res.status}`);
-      const json = await res.json();
-      return Array.isArray(json.earningsCalendar) ? json.earningsCalendar : [];
+    function normalizeMinishareMajorNews(row){
+      const title = String(row?.title || "").trim();
+      const content = String(row?.content || "").trim();
+      return {
+        headline: title || content.slice(0, 80) || "長新聞",
+        summary: content,
+        source: String(row?.src || "長新聞").trim() || "長新聞",
+        datetime: parseArticleTimestamp(row?.pub_time),
+        url: String(row?.url || "").trim()
+      };
     }
-    async function finnhubMarketNews(apiKey){
-      const url = `https://finnhub.io/api/v1/news?category=general&token=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Market news HTTP ${res.status}`);
-      const json = await res.json();
-      if (json && typeof json === "object" && !Array.isArray(json) && json.error) {
-        throw new Error(String(json.error));
-      }
-      return Array.isArray(json) ? json : [];
+    async function minishareQuickNews(authCode, startDate, endDate, limit = 120){
+      const json = await minishareApi("news", authCode, {
+        start_date: startDate,
+        end_date: endDate,
+        limit,
+        offset: 0
+      });
+      return extractMinishareRows(json).map(normalizeMinishareQuickNews);
+    }
+    async function minishareMajorNews(authCode, startDate, endDate){
+      const json = await minishareApi("major_news", authCode, {
+        start_date: startDate,
+        end_date: endDate
+      });
+      return extractMinishareRows(json).map(normalizeMinishareMajorNews);
     }
 
     const stockNewsCache = new Map();
-    let marketNewsCache = { fetchedAt: 0, items: [] };
+    let marketNewsCache = { fetchedAt: 0, tokenKey: "", quick: [], major: [] };
     let currentStockModalSymbol = "";
 
     function openStockModal(){
@@ -2507,8 +2622,10 @@
       const summary = escapeHtml(item.summary || "");
       const url = item.url ? String(item.url) : "";
       const linkHtml = url ? `<a class="link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">打開原文</a>` : "";
+      const star = item.importance === "high" ? `<span class="news-star">★</span>` : `<span class="news-star is-dim">★</span>`;
       return `
         <div class="news-item">
+          <div class="news-item-left">${star}</div>
           <div class="news-item-head">
             <div>
               <div class="news-item-title">${headline}</div>
@@ -2524,40 +2641,52 @@
         </div>
       `;
     }
-    async function getMarketNewsCached(apiKey){
-      const ttl = 10 * 60 * 1000;
-      if (marketNewsCache.items.length && Date.now() - marketNewsCache.fetchedAt < ttl) return marketNewsCache.items;
-      const items = await finnhubMarketNews(apiKey);
-      marketNewsCache = { fetchedAt: Date.now(), items };
-      return items;
-    }
-    async function fetchStockNews(symbol){
-      const apiKey = el.finnhubKey.value.trim();
-      if (!apiKey){
-        return { ok:false, message:"未設定 Finnhub API Key。去設定 → Keys 貼入 key，就可以點候選卡睇消息。", company:[], market:[] };
+    async function getMinishareNewsCached(authCode, lookbackDays){
+      const ttl = 6 * 60 * 1000;
+      const tokenKey = authCode ? `client:${authCode.slice(0, 8)}` : "server-managed";
+      if (marketNewsCache.quick.length && marketNewsCache.tokenKey === tokenKey && Date.now() - marketNewsCache.fetchedAt < ttl) {
+        return marketNewsCache;
       }
-      const lookbackDays = Number(el.newsLookbackDays.value) || 5;
       const to = new Date();
       const from = new Date(Date.now() - lookbackDays * 24 * 3600 * 1000);
-      const fromDate = toDateStr(from);
-      const toDate = toDateStr(to);
+      const startDate = formatNewsDateTime(from);
+      const endDate = formatNewsDateTime(to);
+      const [quick, major] = await Promise.all([
+        minishareQuickNews(authCode, startDate, endDate, 120),
+        minishareMajorNews(authCode, startDate, endDate)
+      ]);
+      marketNewsCache = { fetchedAt: Date.now(), tokenKey, quick, major };
+      return marketNewsCache;
+    }
+    async function fetchStockNews(symbol){
+      const authCode = el.finnhubKey.value.trim();
+      const lookbackDays = Number(el.newsLookbackDays.value) || 2;
       const delayMs = Number(el.finnhubDelayMs.value) || 0;
 
       const cached = stockNewsCache.get(symbol);
       if (cached && Date.now() - cached.fetchedAt < 6 * 60 * 1000) return cached.data;
 
-      let companyRaw = [];
-      let marketRaw = [];
+      let quickRaw = [];
+      let majorRaw = [];
       try {
-        companyRaw = await finnhubCompanyNews(symbol, apiKey, fromDate, toDate);
+        const newsPack = await getMinishareNewsCached(authCode, lookbackDays);
+        quickRaw = newsPack.quick;
         await sleep(delayMs);
-        marketRaw = await getMarketNewsCached(apiKey);
+        majorRaw = newsPack.major;
       } catch (e) {
         const message = String(e?.message || e || "");
-        if (/invalid session token|invalid api key|forbidden|unauthorized|401|403/i.test(message)) {
+        if (/missing_auth_code/i.test(message)) {
           return {
             ok:false,
-            message:"Finnhub API Key 無效、已過期，或者權限唔啱。去設定 → Keys 更新 key 之後再試。",
+            message:"未設定 minishare 授權碼。去設定 → Keys 貼入授權碼，就可以點股票卡睇消息。",
+            company:[],
+            market:[]
+          };
+        }
+        if (/invalid|forbidden|unauthorized|401|403/i.test(message)) {
+          return {
+            ok:false,
+            message:"minishare 授權碼無效、已過期，或者權限唔啱。去設定 → Keys 更新授權碼之後再試。",
             company:[],
             market:[]
           };
@@ -2569,13 +2698,12 @@
           market:[]
         };
       }
-      const company = companyRaw
-        .map(classifyImportance)
-        .map(item => ({ ...item, affectedSymbols: [symbol] }))
+      const company = majorRaw
+        .map(item => ({ ...classifyImportance(item), affectedSymbols: inferAffectedSymbols(item) }))
+        .filter(item => (item.affectedSymbols || []).includes(symbol))
         .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
-      const market = marketRaw
-        .map(classifyImportance)
-        .map(item => ({ ...item, affectedSymbols: inferAffectedSymbols(item) }))
+      const market = quickRaw
+        .map(item => ({ ...classifyImportance(item), affectedSymbols: inferAffectedSymbols(item) }))
         .filter(item => (item.affectedSymbols || []).includes(symbol))
         .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
       const data = { ok:true, message:"", company, market };
@@ -2680,6 +2808,28 @@
         .filter(item => item.importance === "high")
         .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
       return combined.slice(0, 12);
+    }
+    function enrichDatasetWithNews(dataset, companyNews, marketNews){
+      const symbolMap = new Map(dataset.map(item => [item.symbol, []]));
+      [...companyNews, ...marketNews].forEach(article => {
+        (article.affectedSymbols || []).forEach(sym => {
+          if (symbolMap.has(sym)) symbolMap.get(sym).push(article);
+        });
+      });
+      return dataset.map(item => {
+        const related = (symbolMap.get(item.symbol) || []).sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
+        const scorePack = scoreArticles(related);
+        return {
+          ...item,
+          newsBias: scorePack.newsBias,
+          eventScore: scorePack.eventScore,
+          topEvent: scorePack.topEvent,
+          eventTags: scorePack.eventTags,
+          newsSummary: scorePack.summary,
+          newsCount: scorePack.count,
+          newsHeadline: scorePack.headline
+        };
+      });
     }
     function detectNewsEvents(article){
       const text = `${article.headline || ""} ${article.summary || ""}`.toLowerCase();
@@ -3600,6 +3750,38 @@
       }
       return [...found].slice(0, 6);
     }
+    function inferImpactGroups(article){
+      const labels = new Set();
+      const symbols = (article.affectedSymbols || []).map(s => String(s || "").toUpperCase());
+      const text = `${article.headline || ""} ${article.summary || ""}`.toLowerCase();
+
+      const addIf = (cond, label) => { if (cond) labels.add(label); };
+
+      // 大盤 / 指數
+      addIf(symbols.includes("SPY") || symbols.includes("QQQ") || symbols.includes("DIA") || symbols.includes("IWM"), "大盤指數");
+      addIf(String(article.category || "").toLowerCase() === "general", "市場整體");
+
+      // 板塊 ETF / 類股（用最常見對照，之後可再擴充）
+      const hasAny = (arr) => arr.some(s => symbols.includes(s));
+      addIf(hasAny(["SMH","NVDA","AMD","AVGO","TSM","ASML","ARM","MU","INTC"]), "半導體 / AI");
+      addIf(hasAny(["XLK","MSFT","AAPL","GOOGL","META","AMZN","ORCL","CRM","ADBE"]), "科技 / 軟件");
+      addIf(hasAny(["XLF","JPM","BAC","GS","MS","C","WFC","V"]), "金融");
+      addIf(hasAny(["XLE","CVX","XOM","SLB","OXY"]), "能源 / 油氣");
+      addIf(hasAny(["XLV","UNH","JNJ","LLY","PFE","MRK"]), "醫療");
+      addIf(hasAny(["XLY","TSLA","HD","NKE","MCD"]), "消費（可選）");
+      addIf(hasAny(["XLP","PG","KO","PEP","WMT","COST"]), "必需消費");
+      addIf(hasAny(["XLI","CAT","GE","BA","DE"]), "工業");
+      addIf(hasAny(["XLU","NEE","DUK","SO"]), "公用事業");
+      addIf(hasAny(["XLB","LIN","DD","FCX","NEM"]), "原材料");
+
+      // 文字關鍵字輔助（避免冇 ticker 都有提示）
+      addIf(/oil|crude|opec|原油|油價|石油/.test(text), "能源 / 油氣");
+      addIf(/rate|yield|fed|cpi|inflation|利率|通脹|加息|降息/.test(text), "利率 / 宏觀");
+      addIf(/chip|semiconductor|gpu|ai |nvidia|amd|半導體|晶片|gpu|算力|ai/.test(text), "半導體 / AI");
+
+      // 只顯示 3 個，避免太亂
+      return [...labels].slice(0, 3);
+    }
 
     function inferTone(article){
       const text = `${article.headline || ""} ${article.summary || ""}`.toLowerCase();
@@ -3635,6 +3817,7 @@
     function longScore(stock, settings){
       let score = 0;
       const reasons = [];
+      const sectorAlign = calcSectorAlignment(stock, "long");
       score += (stock.dailyTrend + 2) * 9;
       score += (stock.h1Trend + 2) * 7;
       score += (stock.h4Trend + 2) * 8;
@@ -3702,6 +3885,8 @@
       } else if ((stock.sectorRsComposite || 0) < -1.5) {
         score -= clamp(Math.abs(stock.sectorRsComposite) * 0.9, 0, 7);
       }
+      score += sectorAlign.score;
+      if (stock.sectorProxy) reasons.push(`板塊同步：${sectorAlign.label}`);
       score += stock.marketLongBoost || 0;
       if (stock.marketRegimeBias) reasons.push(`大盤 ${stock.marketRegimeBias}`);
       score += clamp((stock.longTriggerScore || 0) * 3.4, 0, 14);
@@ -3711,6 +3896,7 @@
     function shortScore(stock, settings){
       let score = 0;
       const reasons = [];
+      const sectorAlign = calcSectorAlignment(stock, "short");
       score += (-stock.dailyTrend + 2) * 9;
       score += (-stock.h1Trend + 2) * 7;
       score += (-stock.h4Trend + 2) * 8;
@@ -3777,6 +3963,8 @@
       } else if ((stock.sectorRsComposite || 0) > 1.5) {
         score -= clamp(Math.abs(stock.sectorRsComposite) * 0.9, 0, 7);
       }
+      score += sectorAlign.score;
+      if (stock.sectorProxy) reasons.push(`板塊同步：${sectorAlign.label}`);
       score += stock.marketShortBoost || 0;
       if (stock.marketRegimeBias) reasons.push(`大盤 ${stock.marketRegimeBias}`);
       score += clamp((stock.shortTriggerScore || 0) * 3.4, 0, 14);
@@ -3874,6 +4062,7 @@
     function refineSetupQuality(setup, direction){
       let score = setup.score;
       const reasons = [...(setup.reasons || [])];
+      const sectorAlign = calcSectorAlignment(setup, direction);
       const breakoutScore = direction === "long" ? (setup.longBreakoutQualityScore || 0) : (setup.shortBreakoutQualityScore || 0);
       const breakoutLabel = direction === "long" ? (setup.longBreakoutQualityLabel || "普通") : (setup.shortBreakoutQualityLabel || "普通");
       const triggerScore = direction === "long" ? (setup.longTriggerScore || 0) : (setup.shortTriggerScore || 0);
@@ -3912,6 +4101,9 @@
       const stylePack = classifySetupStyle(setup, direction);
       if (stylePack.boost) score += stylePack.boost;
       reasons.push(`風格：${stylePack.label}${stylePack.boost ? `（${stylePack.boost >= 0 ? "+" : ""}${stylePack.boost}）` : ""}`);
+
+      if (sectorAlign.score) score += sectorAlign.score;
+      reasons.push(`板塊同步：${sectorAlign.label}`);
 
       const orbHeld = direction === "long"
         ? (setup.structure?.orbHigh ? setup.price >= setup.structure.orbHigh * 0.998 : false)
@@ -3985,6 +4177,8 @@
         structureCrowdedCount: structurePack.crowdedCount,
         setupStyleLabel: stylePack.label,
         setupStyleBoost: stylePack.boost,
+        sectorAlignLabel: sectorAlign.label,
+        sectorAlignScore: sectorAlign.score,
         distToEntryAtr,
         distToVwapAtr,
         chaseBlocked,
@@ -4068,10 +4262,13 @@
       const time = item.datetime ? new Date(item.datetime * 1000) : null;
       const tone = inferTone(item);
       const impact = impactPercent(item);
+      const star = item.importance === "high" ? `<span class="news-star">★</span>` : `<span class="news-star is-dim">★</span>`;
+      const groups = inferImpactGroups(item);
       const div = document.createElement("article");
       div.className = "candidate timeline-card";
       div.innerHTML = `
         <div class="time-col">
+          <div style="margin-bottom:6px;">${star}</div>
           <div class="date">${time ? time.toLocaleDateString("zh-HK") : "未知日期"}</div>
           <div class="clock">${time ? time.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" }) : "--:--"}</div>
           <div class="source">${item.source || "未知來源"}</div>
@@ -4090,6 +4287,11 @@
           <div class="tag-row" style="margin-top:10px;">
             ${(item.affectedSymbols || []).map(sym => `<div class="tag">影響：${sym}</div>`).join("")}
           </div>
+          ${groups.length ? `
+            <div class="news-impact-groups">
+              ${groups.map(label => `<div class="tag tag-impact">類股：${escapeHtml(label)}</div>`).join("")}
+            </div>
+          ` : ""}
           <div class="news-meta" style="margin-top:10px;">
             ${item.url ? `<a class="link" href="${item.url}" target="_blank" rel="noopener noreferrer">打開原文</a>` : ""}
           </div>
@@ -4140,7 +4342,7 @@
       groups.forEach((groupItems, dateKey) => {
         rows.push(`
           <tr class="news-group-row">
-            <td colspan="7">${dateKey}</td>
+            <td colspan="8">${dateKey}</td>
           </tr>
         `);
         groupItems.forEach(item => {
@@ -4148,8 +4350,11 @@
           const levelText = item.importance === "high" ? "高影響" : item.importance === "medium" ? "中影響" : "一般";
           const tone = inferTone(item);
           const impact = impactPercent(item);
+          const star = item.importance === "high" ? `<span class="news-star">★</span>` : `<span class="news-star is-dim">★</span>`;
+          const groups = inferImpactGroups(item);
           rows.push(`
             <tr>
+              <td style="width:34px; text-align:center; vertical-align:top; padding-top:14px;">${star}</td>
               <td>
                 <div class="news-time">${formatNewsTime(item.datetime)}</div>
                 <div class="news-source">${escapeHtml(item.source || "未知來源")}</div>
@@ -4159,6 +4364,11 @@
                 <div class="news-symbols">
                   ${(item.affectedSymbols || []).map(sym => `<span class="tag">${escapeHtml(sym)}</span>`).join("")}
                 </div>
+                ${groups.length ? `
+                  <div class="news-impact-groups">
+                    ${groups.map(label => `<span class="tag tag-impact">類股：${escapeHtml(label)}</span>`).join("")}
+                  </div>
+                ` : ""}
               </td>
               <td><span class="impact-pill ${levelClass}">${levelText}</span></td>
               <td>
@@ -4181,6 +4391,7 @@
         <table class="news-table">
           <thead>
             <tr>
+              <th style="width:34px;"></th>
               <th>時間 / 來源</th>
               <th>分類</th>
               <th>影響股票</th>
@@ -4210,14 +4421,12 @@
         .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
 
       if (!allNews.length){
-        if (latestFinnhubMode === "disabled") {
-          el.alertsGrid.innerHTML = `<div class="news-empty">目前已停用 Finnhub，呢版只做純價格測試，所以新聞頁暫停。</div>`;
-        } else if (latestFinnhubMode === "missing" || !el.finnhubKey.value.trim()) {
-          el.alertsGrid.innerHTML = `<div class="news-empty">未設定 Finnhub API key，所以未能拉新聞。</div>`;
+        if (latestFinnhubMode === "missing") {
+          el.alertsGrid.innerHTML = `<div class="news-empty">未設定 minishare 授權碼，所以未能拉新聞。</div>`;
         } else if (latestFinnhubMode === "unauthorized") {
-          el.alertsGrid.innerHTML = `<div class="news-empty">Finnhub key 未授權或已失效，所以今輪只完成價格掃描，新聞暫停。</div>`;
-        } else if (errorCounter > 0) {
-          el.alertsGrid.innerHTML = `<div class="news-empty">今輪新聞拉取失敗或被限速，請留意上方「API失敗 / 限速」，再試一次或調高 Finnhub 間隔。</div>`;
+          el.alertsGrid.innerHTML = `<div class="news-empty">minishare 授權碼未授權或已失效，所以今輪只完成價格掃描，新聞暫停。</div>`;
+        } else if (latestFinnhubMode === "error" || errorCounter > 0) {
+          el.alertsGrid.innerHTML = `<div class="news-empty">今輪新聞拉取失敗或被限速，請留意上方「API失敗 / 限速」，再試一次或調高新聞間隔。</div>`;
         } else {
           el.alertsGrid.innerHTML = `<div class="news-empty">今輪真係冇拉到相關新聞，可能係 watchlist 近幾日冇公司新聞。</div>`;
         }
@@ -4370,7 +4579,7 @@
       const session = getUsMarketSession();
 
       const dataset = [];
-      latestFinnhubMode = "disabled";
+      latestFinnhubMode = "normal";
 
       if (includeBenchmarks) {
         await fetchBenchmarks(polygonKey, priceLookbackDays);
@@ -4601,6 +4810,26 @@
       latestDataset = dataset.filter(x => x.price > 0);
       latestCompanyNews = [];
       latestMarketNews = [];
+      const newsAuthCode = el.finnhubKey.value.trim();
+      const newsLookbackDays = Number(el.newsLookbackDays.value) || 2;
+      try {
+        const newsPack = await getMinishareNewsCached(newsAuthCode, newsLookbackDays);
+        latestMarketNews = newsPack.quick
+          .map(item => ({ ...classifyImportance(item), category:"general", affectedSymbols: inferAffectedSymbols(item) }))
+          .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
+        latestCompanyNews = newsPack.major
+          .map(item => ({ ...classifyImportance(item), category:"company", affectedSymbols: inferAffectedSymbols(item) }))
+          .sort((a,b) => (b.datetime || 0) - (a.datetime || 0));
+        latestDataset = enrichDatasetWithNews(latestDataset, latestCompanyNews, latestMarketNews);
+        latestFinnhubMode = "normal";
+      } catch (e) {
+        const message = String(e?.message || e || "");
+        latestFinnhubMode = /missing_auth_code/i.test(message)
+          ? "missing"
+          : /invalid|forbidden|unauthorized|401|403/i.test(message)
+          ? "unauthorized"
+          : "error";
+      }
       latestAlerts = buildAlerts(latestCompanyNews, latestMarketNews);
       latestScanHistory = loadScanHistory();
       const currentPriceMap = new Map(latestDataset.map(item => [item.symbol, item.price]));
@@ -4612,7 +4841,11 @@
       el.statCount.textContent = String(latestDataset.length);
       el.errorCount.textContent = String(errorCounter);
       el.heroErrors.textContent = String(errorCounter);
-      el.statusHint.textContent = `完成：成功 ${latestDataset.length}/${tickers.length}。目前為純價格測試模式，Finnhub 已停用。`;
+      el.statusHint.textContent = latestFinnhubMode === "normal"
+        ? `完成：成功 ${latestDataset.length}/${tickers.length}，已接入 minishare 新聞。`
+        : latestFinnhubMode === "missing"
+        ? `完成：成功 ${latestDataset.length}/${tickers.length}，但未設定 minishare 授權碼，所以今輪只完成價格掃描。`
+        : `完成：成功 ${latestDataset.length}/${tickers.length}，但新聞拉取失敗，所以今輪以價格掃描為主。`;
 
       renderScannerPage();
       latestFollowupHistory = saveFollowupHistory(appendCurrentSignalsToFollowup(loadFollowupHistory(), latestScan));

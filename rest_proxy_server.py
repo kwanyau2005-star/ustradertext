@@ -22,15 +22,19 @@ Render：
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from urllib.parse import urlparse
 import urllib.request
+import urllib.error
 
 
 UPSTREAM_REST_BASE = os.environ.get("UPSTREAM_REST_BASE", "http://44.219.45.87:8081").rstrip("/")
 ENV_PROXY_KEY = os.environ.get("MASSIVE_PROXY_KEY", "").strip()
+MINISHARE_API_BASE = os.environ.get("MINISHARE_API_BASE", "http://mapi.mintree.site:8081").rstrip("/")
+ENV_MINISHARE_AUTH_CODE = os.environ.get("MINISHARE_AUTH_CODE", "").strip()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -42,6 +46,15 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path.startswith("/massive-proxy/"):
             return self._proxy_to_upstream()
         return super().do_GET()
+
+    def do_POST(self):
+        if self.path.startswith("/api/minishare/"):
+            return self._proxy_to_minishare()
+        self.send_response(405)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(b'{"error":"method_not_allowed"}')
 
     def do_HEAD(self):
         if self.path.startswith("/massive-proxy/"):
@@ -86,6 +99,73 @@ class Handler(SimpleHTTPRequestHandler):
                 self.end_headers()
                 if not head_only:
                     self.wfile.write(body)
+        except Exception as e:
+            msg = str(e).replace('"', '\\"')
+            self.send_response(502)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(f'{{"error":"proxy_failed","message":"{msg}"}}'.encode("utf-8"))
+
+    def _proxy_to_minishare(self):
+        endpoint = self.path[len("/api/minishare/"):].split("?", 1)[0].strip("/")
+        if not endpoint:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(b'{"error":"missing_endpoint"}')
+            return
+
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        raw_body = self.rfile.read(length) if length > 0 else b"{}"
+        try:
+            payload = json.loads(raw_body.decode("utf-8") or "{}")
+        except Exception:
+            payload = {}
+
+        auth_code = ENV_MINISHARE_AUTH_CODE or str(payload.get("auth_code") or "").strip()
+        params = payload.get("params")
+        if not isinstance(params, dict):
+            params = {}
+        if not auth_code:
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(b'{"error":"missing_auth_code","message":"Set MINISHARE_AUTH_CODE or send auth_code."}')
+            return
+
+        upstream_url = f"{MINISHARE_API_BASE}/api/minishare/{endpoint}"
+        upstream_payload = json.dumps({
+            "auth_code": auth_code,
+            "params": params
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            upstream_url,
+            data=upstream_payload,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "us-trading-dashboard-minishare-proxy/1.0",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=25) as resp:
+                body = resp.read()
+                self.send_response(resp.getcode())
+                self.send_header("Content-Type", resp.headers.get("Content-Type") or "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(body)
+        except urllib.error.HTTPError as e:
+            body = e.read()
+            self.send_response(e.code)
+            self.send_header("Content-Type", e.headers.get("Content-Type") or "application/json; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
         except Exception as e:
             msg = str(e).replace('"', '\\"')
             self.send_response(502)
