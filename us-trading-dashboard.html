@@ -383,6 +383,13 @@
       gap:8px;
       align-items:stretch;
     }
+    .hero-summary{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:8px;
+      max-width:420px;
+      margin-left:auto;
+    }
     .stats{
       display:grid;
       grid-template-columns:repeat(8, minmax(0,1fr));
@@ -887,6 +894,7 @@
       .stats{grid-template-columns:repeat(4,1fr)}
       .analysis-grid{grid-template-columns:repeat(3,1fr)}
       .summary-grid{grid-template-columns:repeat(4,1fr)}
+      .hero-summary{grid-template-columns:repeat(2,1fr); max-width:none; margin-left:0}
       .candidate-grid{grid-template-columns:repeat(2, minmax(0,1fr))}
     }
     @media (max-width:760px){
@@ -895,6 +903,7 @@
       .stats{grid-template-columns:repeat(2,1fr)}
       .analysis-grid{grid-template-columns:repeat(2,1fr)}
       .summary-grid{grid-template-columns:repeat(2,1fr)}
+      .hero-summary{grid-template-columns:1fr}
       .candidate-grid,.form-grid,.metrics,.levels,.columns,.preset-grid{grid-template-columns:1fr}
       .candidate-top,.news-top,.alert-top{flex-direction:column}
       .modal{padding:10px}
@@ -997,6 +1006,10 @@
             <div class="stat"><div class="k">API失敗 / 限速</div><div class="v" id="heroErrors">0</div></div>
             <div class="stat hide-noise"><div class="k">高影響新聞</div><div class="v" id="heroAlerts">0</div></div>
           </div>
+          <div class="hero-summary">
+            <div class="mini"><div class="k">最佳做多</div><div class="v" id="bestLongTicker">--</div></div>
+            <div class="mini"><div class="k">最佳做空</div><div class="v" id="bestShortTicker">--</div></div>
+          </div>
         </div>
       </section>
 
@@ -1027,17 +1040,6 @@
             <div class="value" id="previousScanTime">--</div>
             <div class="subtext">方便同今輪結果對比變化。</div>
           </div>
-        </div>
-
-        <div class="summary-grid">
-          <div class="mini"><div class="k">最佳做多</div><div class="v" id="bestLongTicker">--</div></div>
-          <div class="mini"><div class="k">最佳做空</div><div class="v" id="bestShortTicker">--</div></div>
-          <div class="mini hide-noise"><div class="k">最值得等</div><div class="v" id="bestWatchTicker">--</div></div>
-          <div class="mini hide-noise"><div class="k">最強事件</div><div class="v" id="bestEventTag">--</div></div>
-          <div class="mini"><div class="k">上次變化最大</div><div class="v" id="trackedDelta">--</div></div>
-          <div class="mini hide-noise"><div class="k">1日追蹤</div><div class="v" id="perf1d">--</div></div>
-          <div class="mini hide-noise"><div class="k">3日追蹤</div><div class="v" id="perf3d">--</div></div>
-          <div class="mini hide-noise"><div class="k">5日追蹤</div><div class="v" id="perf5d">--</div></div>
         </div>
 
         <div class="columns">
@@ -1614,7 +1616,7 @@
     const priceProviderVersionValue = "massive-render-proxy-v1";
     const defaultApiKeys = {
       polygon: "",
-      finnhub: "",
+      finnhub: "K48p6c7MmDXPM6a2jLn0e53Xqw3w4Xzpts8VB9vcPeQ080lcGQ2JPTOa8393b021",
       minishareRtUs: "dIFnS05lM2Cxm7Nydo7ijr3kxZt4BomWu0s8Rv5jtyOJ2F0iVYIgawhM3e7825ce",
       minishareUsDaily: "d6NcHa2RSm2htu5XpHR8s2Sbd19y4SsBS2y00ZnN899Mwv5EVTJBYk1Gea566c0e"
     };
@@ -3330,8 +3332,12 @@
       const chartPad = { top: 8, right: 56, bottom: 18, left: hasSeriesLegend ? 70 : 56 };
       const plotW = Math.max(10, width - chartPad.left - chartPad.right);
       const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
-      const minL = Math.min(...bars.map(b => b.l));
-      const maxH = Math.max(...bars.map(b => b.h));
+      const rawMinL = Math.min(...bars.map(b => b.l));
+      const rawMaxH = Math.max(...bars.map(b => b.h));
+      const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
+      const pad = rawRange * 0.1;
+      const minL = rawMinL - pad;
+      const maxH = rawMaxH + pad;
       const range = Math.max(1e-9, maxH - minL);
       const scaleY = (v) => chartPad.top + (maxH - v) / range * plotH;
       const step = plotW / bars.length;
@@ -3425,9 +3431,9 @@
           }
         });
       const priceText = (v) => escapeHtml(formatPrice(v));
-      parts.push(`<text x="${xRight + 6}" y="${chartPad.top + 8}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(maxH)}</text>`);
-      parts.push(`<text x="${xRight + 6}" y="${yMid + 4}" fill="${axisColor}" font-size="10" font-weight="700">${priceText((maxH + minL)/2)}</text>`);
-      parts.push(`<text x="${xRight + 6}" y="${chartPad.top + plotH}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(minL)}</text>`);
+      parts.push(`<text x="${xRight + 6}" y="${chartPad.top + 8}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMaxH)}</text>`);
+      parts.push(`<text x="${xRight + 6}" y="${yMid + 4}" fill="${axisColor}" font-size="10" font-weight="700">${priceText((rawMaxH + rawMinL)/2)}</text>`);
+      parts.push(`<text x="${xRight + 6}" y="${chartPad.top + plotH}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMinL)}</text>`);
       const formatTick = (bar) => {
         if (!bar?.t) return "";
         const d = new Date(bar.t);
@@ -3628,8 +3634,12 @@
       ctx.stroke();
       if (!Array.isArray(bars) || bars.length < 2) return;
       const chartPad = { top: 10, right: 56, bottom: 20, left: hasSeriesLegend ? 70 : 56 };
-      const minL = Math.min(...bars.map(b => b.l));
-      const maxH = Math.max(...bars.map(b => b.h));
+      const rawMinL = Math.min(...bars.map(b => b.l));
+      const rawMaxH = Math.max(...bars.map(b => b.h));
+      const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
+      const pad = rawRange * 0.1;
+      const minL = rawMinL - pad;
+      const maxH = rawMaxH + pad;
       const range = Math.max(1e-9, maxH - minL);
       const plotW = Math.max(10, w - chartPad.left - chartPad.right);
       const plotH = Math.max(10, h - chartPad.top - chartPad.bottom);
@@ -3774,9 +3784,9 @@
         ctx.fillText(text, tx, ty);
         ctx.textAlign = "start";
       };
-      drawAxisText(formatPrice(maxH), xRight + 6, yTop + 8);
-      drawAxisText(formatPrice((maxH + minL) / 2), xRight + 6, yMid + 4);
-      drawAxisText(formatPrice(minL), xRight + 6, yBottom);
+      drawAxisText(formatPrice(rawMaxH), xRight + 6, yTop + 8);
+      drawAxisText(formatPrice((rawMaxH + rawMinL) / 2), xRight + 6, yMid + 4);
+      drawAxisText(formatPrice(rawMinL), xRight + 6, yBottom);
       const formatTick = (bar) => {
         if (!bar?.t) return "";
         const d = new Date(bar.t);
@@ -3888,7 +3898,7 @@
           { value: item.price, label: "Now", color: isShort ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
           { value: item.entry, label: "Entry", color: "rgba(224,179,109,.95)" },
           { value: item.stop, label: "SL", color: "rgba(227,93,106,.95)", dash: true },
-          { value: item.tp1, label: "TP1", color: "rgba(110,231,183,.92)" },
+          { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
           { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
           { value: structure.sessionVWAP, label: "VWAP", color: "rgba(56,189,248,.92)", dash: true },
           { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
@@ -4608,7 +4618,7 @@
         { value: item.price, label: "Now", color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
         { value: item.entry, label: "Entry", color: "rgba(224,179,109,.95)" },
         { value: item.stop, label: "SL", color: "rgba(227,93,106,.95)", dash: true },
-        { value: item.tp1, label: "TP1", color: "rgba(110,231,183,.92)" },
+        { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
         { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
         // Structure levels
         { value: structure.sessionVWAP, label: "VWAP", color: "rgba(56,189,248,.92)", dash: true },
@@ -5060,14 +5070,14 @@
       el.dominantBias.textContent = `${dominant} / 大盤${latestMarketContext.bias} / ${latestMarketContext.volatilityLabel || "正常波動"} / ${latestMarketContext.dayTypeLabel || "Range day"} / 校準 ${latestCalibration.summary || "未啟動"}`;
       el.historyRuns.textContent = String(latestScanHistory.length + (dataset.length ? 1 : 0));
       el.previousScanTime.textContent = latestScanHistory[0]?.time ? formatHistoryTime(latestScanHistory[0].time) : "首次";
-      el.bestLongTicker.textContent = bestLong ? bestLong.symbol : "--";
-      el.bestShortTicker.textContent = bestShort ? bestShort.symbol : "--";
-      el.bestWatchTicker.textContent = bestWatch ? bestWatch.symbol : "--";
-      el.bestEventTag.textContent = bestEventStock ? `${bestEventStock.symbol} · ${bestEventStock.topEvent}` : "--";
-      el.trackedDelta.textContent = trackedMover ? `${trackedMover.symbol} ${trackedMover.sinceLastScanPct >= 0 ? "+" : ""}${trackedMover.sinceLastScanPct.toFixed(1)}%` : "--";
-      el.perf1d.textContent = formatPerfSummary(perfSummary.d1);
-      el.perf3d.textContent = formatPerfSummary(perfSummary.d3);
-      el.perf5d.textContent = formatPerfSummary(perfSummary.d5);
+      if (el.bestLongTicker) el.bestLongTicker.textContent = bestLong ? bestLong.symbol : "--";
+      if (el.bestShortTicker) el.bestShortTicker.textContent = bestShort ? bestShort.symbol : "--";
+      if (el.bestWatchTicker) el.bestWatchTicker.textContent = bestWatch ? bestWatch.symbol : "--";
+      if (el.bestEventTag) el.bestEventTag.textContent = bestEventStock ? `${bestEventStock.symbol} · ${bestEventStock.topEvent}` : "--";
+      if (el.trackedDelta) el.trackedDelta.textContent = trackedMover ? `${trackedMover.symbol} ${trackedMover.sinceLastScanPct >= 0 ? "+" : ""}${trackedMover.sinceLastScanPct.toFixed(1)}%` : "--";
+      if (el.perf1d) el.perf1d.textContent = formatPerfSummary(perfSummary.d1);
+      if (el.perf3d) el.perf3d.textContent = formatPerfSummary(perfSummary.d3);
+      if (el.perf5d) el.perf5d.textContent = formatPerfSummary(perfSummary.d5);
     }
 
     async function runAll(){
