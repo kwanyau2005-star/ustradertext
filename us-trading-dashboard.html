@@ -3686,7 +3686,7 @@
       const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
       const bgLineColor = theme.midColor || "rgba(255,255,255,.06)";
       const series = Array.isArray(opts?.series) ? opts.series : [];
-      const chartPad = { top: 8, right: 56, bottom: 18, left: 56 };
+      const chartPad = { top: 8, right: 48, bottom: 18, left: 44 };
       const plotW = Math.max(10, width - chartPad.left - chartPad.right);
       const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
       const rawMinL = Math.min(...bars.map(b => b.l));
@@ -3747,6 +3747,7 @@
       });
       const overlays = Array.isArray(opts?.overlays) ? opts.overlays : [];
       const labelYs = [];
+      let labelCount = 0;
       overlays
         .filter(o => o && Number.isFinite(o.value))
         .forEach(o => {
@@ -3757,8 +3758,12 @@
           let label = o.label;
           if (label) {
             // Avoid label overlap: if two levels are too close, keep the line but hide the label.
-            if (labelYs.some(prevY => Math.abs(prevY - y) < 14)) label = "";
-            else labelYs.push(y);
+            if (labelCount >= 3) label = "";
+            else if (labelYs.some(prevY => Math.abs(prevY - y) < 16)) label = "";
+            else {
+              labelYs.push(y);
+              labelCount += 1;
+            }
           }
           if (label) {
             const text = escapeHtml(label);
@@ -3972,7 +3977,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       if (!Array.isArray(bars) || bars.length < 2) return;
-      const chartPad = { top: 10, right: 56, bottom: 20, left: 56 };
+      const chartPad = { top: 10, right: 48, bottom: 20, left: 44 };
       const rawMinL = Math.min(...bars.map(b => b.l));
       const rawMaxH = Math.max(...bars.map(b => b.h));
       const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
@@ -4063,6 +4068,7 @@
       });
       const overlays = Array.isArray(opts.overlays) ? opts.overlays : [];
       const labelYs = [];
+      let labelCount = 0;
       overlays.filter(o => o && Number.isFinite(o.value)).forEach(o => {
         const yy = Math.max(yTop, Math.min(yBottom, scaleY(o.value)));
         ctx.strokeStyle = o.color || "rgba(255,255,255,.5)";
@@ -4075,8 +4081,12 @@
         ctx.setLineDash([]);
         let label = o.label || "";
         if (label) {
-          if (labelYs.some(prevY => Math.abs(prevY - yy) < 14)) label = "";
-          else labelYs.push(yy);
+          if (labelCount >= 3) label = "";
+          else if (labelYs.some(prevY => Math.abs(prevY - yy) < 16)) label = "";
+          else {
+            labelYs.push(yy);
+            labelCount += 1;
+          }
         }
         if (label) {
           const text = String(label);
@@ -4949,10 +4959,10 @@
       const structure = item.structure || {};
       const overlays = [
         { value: item.price, label: "Now", color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
-        { value: item.entry, label: "Entry", color: "rgba(224,179,109,.95)" },
+        { value: item.entry, label: "", color: "rgba(224,179,109,.95)" },
         { value: item.stop, label: "SL", color: "rgba(227,93,106,.95)", dash: true },
         { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
-        { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
+        { value: item.tp2, label: "", color: "rgba(96,165,250,.92)" },
         // Structure levels
         { value: structure.sessionVWAP, label: "VWAP", color: "rgba(56,189,248,.92)", dash: true },
         { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
