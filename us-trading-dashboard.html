@@ -716,10 +716,10 @@
       margin-bottom:8px;
     }
     .chart-title{
-      font-size:11px;
+      font-size:13px;
       font-weight:900;
       color:#eef2ff;
-      letter-spacing:.08em;
+      letter-spacing:.10em;
       text-transform:uppercase;
     }
     .chart-subtitle{
@@ -3686,7 +3686,7 @@
       const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
       const bgLineColor = theme.midColor || "rgba(255,255,255,.06)";
       const series = Array.isArray(opts?.series) ? opts.series : [];
-      const chartPad = { top: 8, right: 48, bottom: 18, left: 44 };
+      const chartPad = { top: 8, right: 68, bottom: 18, left: 10 };
       const plotW = Math.max(10, width - chartPad.left - chartPad.right);
       const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
       const rawMinL = Math.min(...bars.map(b => b.l));
@@ -3697,7 +3697,7 @@
       const maxH = rawMaxH + pad;
       const range = Math.max(1e-9, maxH - minL);
       const scaleY = (v) => chartPad.top + (maxH - v) / range * plotH;
-      const step = plotW / bars.length;
+      const step = plotW / (bars.length + 1);
       const bodyW = Math.max(2, Math.floor(step * 0.55));
       const parts = [];
       const xLeft = chartPad.left;
@@ -3746,8 +3746,6 @@
         }
       });
       const overlays = Array.isArray(opts?.overlays) ? opts.overlays : [];
-      const labelYs = [];
-      let labelCount = 0;
       overlays
         .filter(o => o && Number.isFinite(o.value))
         .forEach(o => {
@@ -3755,25 +3753,6 @@
           const stroke = o.color || "rgba(255,255,255,.45)";
           const dash = o.dash ? ' stroke-dasharray="4 3"' : "";
           parts.push(`<line x1="${xLeft}" y1="${y}" x2="${xRight}" y2="${y}" stroke="${stroke}" stroke-width="1.2"${dash} opacity="0.95" />`);
-          let label = o.label;
-          if (label) {
-            // Avoid label overlap: if two levels are too close, keep the line but hide the label.
-            if (labelCount >= 3) label = "";
-            else if (labelYs.some(prevY => Math.abs(prevY - y) < 16)) label = "";
-            else {
-              labelYs.push(y);
-              labelCount += 1;
-            }
-          }
-          if (label) {
-            const text = escapeHtml(label);
-            // Indicator label boxes on LEFT (avoid overlapping with price axis on right)
-            const w = Math.min(chartPad.left - 8, Math.max(38, text.length * 6.1 + 16));
-            const rx = 4;
-            const ry = clamp(y - 8, 2, height - 18);
-            parts.push(`<rect x="${rx}" y="${ry}" width="${w}" height="16" rx="7" ry="7" fill="rgba(10,13,18,.84)" stroke="rgba(255,255,255,.12)" />`);
-            parts.push(`<text x="${rx + w/2}" y="${ry + 11}" fill="${stroke}" font-size="10" font-weight="900" text-anchor="middle" style="letter-spacing:.02em">${text}</text>`);
-          }
         });
       const priceText = (v) => escapeHtml(formatPrice(v));
       parts.push(`<text x="${xRight + 6}" y="${chartPad.top + 8}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMaxH)}</text>`);
@@ -3977,7 +3956,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       if (!Array.isArray(bars) || bars.length < 2) return;
-      const chartPad = { top: 10, right: 48, bottom: 20, left: 44 };
+      const chartPad = { top: 10, right: 68, bottom: 20, left: 10 };
       const rawMinL = Math.min(...bars.map(b => b.l));
       const rawMaxH = Math.max(...bars.map(b => b.h));
       const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
@@ -4006,7 +3985,7 @@
       ctx.moveTo(xLeft, yMid);
       ctx.lineTo(xRight, yMid);
       ctx.stroke();
-      const step = plotW / bars.length;
+      const step = plotW / (bars.length + 1);
       const bodyW = Math.max(2, Math.floor(step * 0.55));
       // Vertical dashed grid
       ctx.strokeStyle = gridColor;
@@ -4067,8 +4046,6 @@
 
       });
       const overlays = Array.isArray(opts.overlays) ? opts.overlays : [];
-      const labelYs = [];
-      let labelCount = 0;
       overlays.filter(o => o && Number.isFinite(o.value)).forEach(o => {
         const yy = Math.max(yTop, Math.min(yBottom, scaleY(o.value)));
         ctx.strokeStyle = o.color || "rgba(255,255,255,.5)";
@@ -4079,32 +4056,6 @@
         ctx.lineTo(xRight, yy);
         ctx.stroke();
         ctx.setLineDash([]);
-        let label = o.label || "";
-        if (label) {
-          if (labelCount >= 3) label = "";
-          else if (labelYs.some(prevY => Math.abs(prevY - yy) < 16)) label = "";
-          else {
-            labelYs.push(yy);
-            labelCount += 1;
-          }
-        }
-        if (label) {
-          const text = String(label);
-          ctx.font = "900 10px Arial, PingFang TC, Microsoft JhengHei, sans-serif";
-          const tw = Math.min(chartPad.left - 8, Math.max(38, ctx.measureText(text).width + 16));
-          const rx = x + 4;
-          const ry = Math.max(y + 2, Math.min(y + h - 18, yy - 8));
-          drawRoundRect(ctx, rx, ry, tw, 16, 7);
-          ctx.fillStyle = "rgba(10,13,18,0.84)";
-          ctx.fill();
-          ctx.strokeStyle = "rgba(255,255,255,0.12)";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.fillStyle = o.color || "#fff";
-          ctx.textAlign = "center";
-          ctx.fillText(text, rx + tw / 2, ry + 11);
-          ctx.textAlign = "start";
-        }
       });
       const drawAxisText = (text, tx, ty, align="start") => {
         ctx.fillStyle = axisColor;
@@ -4224,14 +4175,14 @@
 
         const structure = item.structure || {};
         const overlays = [
-          { value: item.price, label: "Now", color: isShort ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
-          { value: item.entry, label: "Entry", color: "rgba(224,179,109,.95)" },
-          { value: item.stop, label: "SL", color: "rgba(227,93,106,.95)", dash: true },
+          { value: item.price, label: "", color: isShort ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
+          { value: item.entry, label: "", color: "rgba(224,179,109,.95)" },
+          { value: item.stop, label: "", color: "rgba(227,93,106,.95)", dash: true },
           { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
-          { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
-          { value: structure.sessionVWAP, label: "VWAP", color: "rgba(56,189,248,.92)", dash: true },
-          { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
-          { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
+          { value: item.tp2, label: "", color: "rgba(96,165,250,.92)" },
+          { value: structure.sessionVWAP, label: "", color: "rgba(56,189,248,.92)", dash: true },
+          { value: structure.recentResistance, label: "", color: "rgba(255,255,255,.32)", dash: true },
+          { value: structure.recentSupport, label: "", color: "rgba(255,255,255,.32)", dash: true }
         ].filter(o => Number.isFinite(o.value));
         drawMiniCandlesCanvas(ctx, item.sparkBars || [], x + 18, y + 98, cardW - 36, 124, { overlays, theme, series: buildIndicatorSeries(item.sparkBars || []) });
 
@@ -4958,15 +4909,15 @@
         : { upColor:"rgba(34,197,94,.92)", downColor:"rgba(239,68,68,.92)", axisColor:"rgba(219,234,254,.76)", gridColor:"rgba(96,165,250,.10)", midColor:"rgba(96,165,250,.16)" };
       const structure = item.structure || {};
       const overlays = [
-        { value: item.price, label: "Now", color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
+        { value: item.price, label: "", color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
         { value: item.entry, label: "", color: "rgba(224,179,109,.95)" },
-        { value: item.stop, label: "SL", color: "rgba(227,93,106,.95)", dash: true },
+        { value: item.stop, label: "", color: "rgba(227,93,106,.95)", dash: true },
         { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
         { value: item.tp2, label: "", color: "rgba(96,165,250,.92)" },
         // Structure levels
-        { value: structure.sessionVWAP, label: "VWAP", color: "rgba(56,189,248,.92)", dash: true },
-        { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
-        { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
+        { value: structure.sessionVWAP, label: "", color: "rgba(56,189,248,.92)", dash: true },
+        { value: structure.recentResistance, label: "", color: "rgba(255,255,255,.32)", dash: true },
+        { value: structure.recentSupport, label: "", color: "rgba(255,255,255,.32)", dash: true }
       ].filter(o => Number.isFinite(o.value));
       const article = document.createElement("article");
       article.className = `candidate ${modeClass}${selectedSymbols.has(item.symbol) ? " selected" : ""}`;
@@ -4980,7 +4931,6 @@
           <div class="candidate-primary">
             <div class="candidate-title-wrap">
               <div class="ticker">${item.symbol}</div>
-              <div class="meta">${item.name || item.symbol}</div>
             </div>
             <div class="candidate-price-stack">
               <div class="score-pill ${scoreClass}${scoreStrongClass}">Score ${item.score}</div>
@@ -5002,7 +4952,7 @@
         <div class="candidate-chart">
           <div class="chart-head">
             <div>
-              <div class="chart-title">Price structure</div>
+              <div class="chart-title">PRICE STRUCTURE</div>
               <div class="chart-subtitle">${directionLabel} · ${item.setupStyleLabel || "一般"} · ${item.marketVolatilityLabel || "正常波動"}</div>
             </div>
             <div class="chart-readout">
