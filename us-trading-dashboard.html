@@ -2326,18 +2326,16 @@
       return out;
     }
     function buildIndicatorSeries(bars){
-      // 風格參考你張圖：MA10 / MA20 / MA50 / MA200 + VWAP
+      // 風格參考你張圖：MA10 / MA20 / MA50 / MA200
       const series = [];
       const ma10 = calcSmaSeries(bars, 10);
       const ma20 = calcSmaSeries(bars, 20);
       const ma50 = calcSmaSeries(bars, 50);
       const ma200 = calcSmaSeries(bars, 200);
-      const vwap = calcVwapSeries(bars);
       series.push({ key:"ma10", label:"MA10", color:"#53b6ff", width:2, values: ma10 });
       series.push({ key:"ma20", label:"MA20", color:"#c565ff", width:2, values: ma20 });
       series.push({ key:"ma50", label:"MA50", color:"#57d38d", width:2, values: ma50 });
       series.push({ key:"ma200", label:"MA200", color:"#7be0e8", width:2, values: ma200 });
-      series.push({ key:"vwap", label:"VWAP", color:"#e0b36d", width:1.15, dash:true, values: vwap });
       return series;
     }
     function calcDailyTrend(bars){
@@ -3098,14 +3096,29 @@
       const day = String(dt.getDate()).padStart(2, "0");
       return `${y}${m}${day}`;
     }
+    function ymdCompactUtc(input){
+      const dt = input instanceof Date ? input : new Date(input);
+      const y = dt.getUTCFullYear();
+      const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(dt.getUTCDate()).padStart(2, "0");
+      return `${y}${m}${day}`;
+    }
+    function barTradingDayKey(bar){
+      if (!bar) return "";
+      if (bar.dayKey) return String(bar.dayKey);
+      if (bar.t) return ymdCompactUtc(bar.t);
+      return "";
+    }
     function normalizeUsDailyBars(rows){
       return dedupeBarsByTradingDay((rows || [])
         .map(row => {
           const t = normalizeMinishareTimestamp(row.timestamp_ms) || new Date(String(row.trade_date || "").replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).getTime();
           const vwap = Number(row.vwap || 0);
           const vol = Number(row.vol || 0);
+          const dayKey = String(row.trade_date || "").trim() || ymdCompactUtc(t);
           return {
             t,
+            dayKey,
             o: Number(row.open || 0),
             h: Number(row.high || 0),
             l: Number(row.low || 0),
@@ -3123,9 +3136,9 @@
       const out = [];
       (bars || []).forEach(bar => {
         if (!bar?.t) return;
-        const dayKey = ymdCompact(new Date(bar.t));
+        const dayKey = barTradingDayKey(bar);
         const last = out.at(-1);
-        const lastKey = last?.t ? ymdCompact(new Date(last.t)) : "";
+        const lastKey = barTradingDayKey(last);
         if (last && lastKey === dayKey) out[out.length - 1] = bar;
         else out.push(bar);
       });
@@ -3169,9 +3182,10 @@
       const quoteTime = quote.date ? new Date(quote.date).getTime() : Date.now();
       const last = out.at(-1);
       const quoteDay = quote.date ? quote.date.slice(0, 10).replace(/-/g, "") : ymdCompact(new Date());
-      const lastDay = last?.t ? ymdCompact(new Date(last.t)) : "";
+      const lastDay = barTradingDayKey(last);
       const mergedBar = {
         t: Number.isFinite(quoteTime) && quoteTime > 0 ? quoteTime : Date.now(),
+        dayKey: quoteDay,
         o: quote.o > 0 ? quote.o : (last?.o || quote.c),
         h: quote.h > 0 ? quote.h : Math.max(last?.h || quote.c, quote.c),
         l: quote.l > 0 ? quote.l : Math.min(last?.l || quote.c, quote.c),
@@ -3698,7 +3712,7 @@
       const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
       const bgLineColor = theme.midColor || "rgba(255,255,255,.06)";
       const series = Array.isArray(opts?.series) ? opts.series : [];
-      const chartPad = { top: 8, right: 68, bottom: 18, left: 10 };
+      const chartPad = { top: 8, right: 64, bottom: 18, left: 40 };
       const plotW = Math.max(10, width - chartPad.left - chartPad.right);
       const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
       const rawMinL = Math.min(...bars.map(b => b.l));
@@ -3758,6 +3772,7 @@
         }
       });
       const overlays = Array.isArray(opts?.overlays) ? opts.overlays : [];
+      const labelYs = [];
       overlays
         .filter(o => o && Number.isFinite(o.value))
         .forEach(o => {
@@ -3765,6 +3780,16 @@
           const stroke = o.color || "rgba(255,255,255,.45)";
           const dash = o.dash ? ' stroke-dasharray="4 3"' : "";
           parts.push(`<line x1="${xLeft}" y1="${y}" x2="${xRight}" y2="${y}" stroke="${stroke}" stroke-width="1.2"${dash} opacity="0.95" />`);
+          const label = String(o.label || "").trim();
+          if (label && !labelYs.some(prevY => Math.abs(prevY - y) < 14)) {
+            labelYs.push(y);
+            const text = escapeHtml(label);
+            const boxW = Math.max(20, Math.min(46, label.length * 6.2 + 12));
+            const rx = 4;
+            const ry = clamp(y - 8, 2, height - 18);
+            parts.push(`<rect x="${rx}" y="${ry}" width="${boxW}" height="16" rx="7" ry="7" fill="rgba(8,10,18,.88)" stroke="rgba(255,255,255,.10)" />`);
+            parts.push(`<text x="${rx + boxW/2}" y="${ry + 11}" fill="${stroke}" font-size="10" font-weight="900" text-anchor="middle">${text}</text>`);
+          }
         });
       const priceText = (v) => escapeHtml(formatPrice(v));
       parts.push(`<text x="${xRight + 6}" y="${chartPad.top + 8}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMaxH)}</text>`);
@@ -3968,7 +3993,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       if (!Array.isArray(bars) || bars.length < 2) return;
-      const chartPad = { top: 10, right: 68, bottom: 20, left: 10 };
+      const chartPad = { top: 10, right: 64, bottom: 20, left: 40 };
       const rawMinL = Math.min(...bars.map(b => b.l));
       const rawMaxH = Math.max(...bars.map(b => b.h));
       const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
@@ -4058,6 +4083,7 @@
 
       });
       const overlays = Array.isArray(opts.overlays) ? opts.overlays : [];
+      const labelYs = [];
       overlays.filter(o => o && Number.isFinite(o.value)).forEach(o => {
         const yy = Math.max(yTop, Math.min(yBottom, scaleY(o.value)));
         ctx.strokeStyle = o.color || "rgba(255,255,255,.5)";
@@ -4068,6 +4094,24 @@
         ctx.lineTo(xRight, yy);
         ctx.stroke();
         ctx.setLineDash([]);
+        const label = String(o.label || "").trim();
+        if (label && !labelYs.some(prevY => Math.abs(prevY - yy) < 14)) {
+          labelYs.push(yy);
+          ctx.font = "900 10px Arial, PingFang TC, Microsoft JhengHei, sans-serif";
+          const boxW = Math.max(20, Math.min(46, ctx.measureText(label).width + 12));
+          const rx = x + 4;
+          const ry = Math.max(y + 2, Math.min(y + h - 18, yy - 8));
+          drawRoundRect(ctx, rx, ry, boxW, 16, 7);
+          ctx.fillStyle = "rgba(8,10,18,0.88)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.10)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = o.color || "#fff";
+          ctx.textAlign = "center";
+          ctx.fillText(label, rx + boxW / 2, ry + 11);
+          ctx.textAlign = "start";
+        }
       });
       const drawAxisText = (text, tx, ty, align="start") => {
         ctx.fillStyle = axisColor;
@@ -4187,14 +4231,13 @@
 
         const structure = item.structure || {};
         const overlays = [
-          { value: item.price, label: "", color: isShort ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
+          { value: item.price, label: formatPrice(item.price), color: isShort ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
           { value: item.entry, label: "", color: "rgba(224,179,109,.95)" },
           { value: item.stop, label: "", color: "rgba(227,93,106,.95)", dash: true },
           { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
-          { value: item.tp2, label: "", color: "rgba(96,165,250,.92)" },
-          { value: structure.sessionVWAP, label: "", color: "rgba(56,189,248,.92)", dash: true },
-          { value: structure.recentResistance, label: "", color: "rgba(255,255,255,.32)", dash: true },
-          { value: structure.recentSupport, label: "", color: "rgba(255,255,255,.32)", dash: true }
+          { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
+          { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
+          { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
         ].filter(o => Number.isFinite(o.value));
         drawMiniCandlesCanvas(ctx, item.sparkBars || [], x + 18, y + 98, cardW - 36, 124, { overlays, theme, series: buildIndicatorSeries(item.sparkBars || []) });
 
@@ -4921,15 +4964,14 @@
         : { upColor:"rgba(34,197,94,.92)", downColor:"rgba(239,68,68,.92)", axisColor:"rgba(219,234,254,.76)", gridColor:"rgba(96,165,250,.10)", midColor:"rgba(96,165,250,.16)" };
       const structure = item.structure || {};
       const overlays = [
-        { value: item.price, label: "", color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
+        { value: item.price, label: formatPrice(item.price), color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
         { value: item.entry, label: "", color: "rgba(224,179,109,.95)" },
         { value: item.stop, label: "", color: "rgba(227,93,106,.95)", dash: true },
         { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
-        { value: item.tp2, label: "", color: "rgba(96,165,250,.92)" },
+        { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
         // Structure levels
-        { value: structure.sessionVWAP, label: "", color: "rgba(56,189,248,.92)", dash: true },
-        { value: structure.recentResistance, label: "", color: "rgba(255,255,255,.32)", dash: true },
-        { value: structure.recentSupport, label: "", color: "rgba(255,255,255,.32)", dash: true }
+        { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
+        { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
       ].filter(o => Number.isFinite(o.value));
       const article = document.createElement("article");
       article.className = `candidate ${modeClass}${selectedSymbols.has(item.symbol) ? " selected" : ""}`;
