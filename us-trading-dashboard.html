@@ -716,7 +716,7 @@
       margin-bottom:8px;
     }
     .chart-title{
-      font-size:13px;
+      font-size:14px;
       font-weight:900;
       color:#eef2ff;
       letter-spacing:.10em;
@@ -1267,7 +1267,7 @@
       <span class="small">直接更新數據</span>
     </button>
     <button class="quick-run-btn" id="topExportBtn">
-      匯出資料
+      匯出學習資料
       <span class="small">輸出已選名單</span>
     </button>
   </div>
@@ -3099,7 +3099,7 @@
       return `${y}${m}${day}`;
     }
     function normalizeUsDailyBars(rows){
-      return (rows || [])
+      return dedupeBarsByTradingDay((rows || [])
         .map(row => {
           const t = normalizeMinishareTimestamp(row.timestamp_ms) || new Date(String(row.trade_date || "").replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).getTime();
           const vwap = Number(row.vwap || 0);
@@ -3117,7 +3117,19 @@
           };
         })
         .filter(b => b.t && Number.isFinite(b.c) && b.c > 0)
-        .sort((a,b) => a.t - b.t);
+        .sort((a,b) => a.t - b.t));
+    }
+    function dedupeBarsByTradingDay(bars){
+      const out = [];
+      (bars || []).forEach(bar => {
+        if (!bar?.t) return;
+        const dayKey = ymdCompact(new Date(bar.t));
+        const last = out.at(-1);
+        const lastKey = last?.t ? ymdCompact(new Date(last.t)) : "";
+        if (last && lastKey === dayKey) out[out.length - 1] = bar;
+        else out.push(bar);
+      });
+      return out;
     }
     function normalizeUsRealtimeQuote(row){
       return {
@@ -3168,7 +3180,7 @@
       };
       if (last && lastDay === quoteDay) out[out.length - 1] = mergedBar;
       else out.push(mergedBar);
-      return out;
+      return dedupeBarsByTradingDay(out);
     }
     function normalizeMinishareQuickNews(row){
       const content = String(row?.content || "").trim();
