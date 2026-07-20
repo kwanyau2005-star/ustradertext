@@ -1,9 +1,13 @@
 // 每次發佈如果 HTML/CSS/JS 有改動，請記得更新版本號，避免用戶一直食舊 cache。
-const CACHE_NAME = "ustradertext-shell-v25";
+const CACHE_NAME = "ustradertext-shell-v26";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/us-trading-dashboard.html",
+  "/styles.css",
+  "/src/legacy.js",
+  "/src/pattern-bridge.js",
+  "/src/pattern-recognition/index.js",
   "/manifest.webmanifest",
   "/assets/ustradertext_app_icon.jpg"
 ];
