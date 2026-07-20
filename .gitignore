@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build artifacts / packaging
+*.zip
+*.tar.gz
+dist/
+build/
+out/
+
+# Deploy artifacts
+ustradertext_v26/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*~
+
+# WorkBuddy / agent meta (do NOT commit — local only)
+.workbuddy-ai/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# API keys / secrets — never commit
+*.pem
+secrets.json
