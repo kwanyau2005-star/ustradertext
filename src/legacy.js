@@ -124,6 +124,7 @@
       "statusHint","selectedSummary","exportSelectedBtn","clearSelectedBtn","exportBtn","copyJsonBtn",
       "navScanner","navNews","pageScanner","pageNews","scannerTabLong","scannerTabShort","scannerTabWatch","scannerPanelLong","scannerPanelShort","scannerPanelWatch",
       "openMainMenuBtn","topRunBtn","topExportBtn","quickPresetSelect","mainMenuModal","closeMainMenuBtn",
+      "dirScanner","dirNews","dirTools","dirToolsPanel","dirOpenWatchlist","dirOpenRuntime","dirOpenScanner","dirChangePolygonKey","dirChangeFinnhubKey","dirRunNow","dirExportSelected",
       "changePolygonKeyBtn","changeFinnhubKeyBtn","openWatchlistModal","openRuntimeModal","openScannerModal","settingsModal","closeModalBtn","modalTitle","modalIntro","modalBadge","modalSectionKeys","modalSectionWatchlist","modalSectionRuntime","modalSectionScanner","modalRunBtn","scannerPresetHint",
       "stockModal","closeStockModalBtn","stockModalTitle","stockModalIntro","stockModalMeta","stockModalBody",
       "newsFilterMode","newsSearch","newsPinHighToggle","newsCompactToggle","newsModal","closeNewsModalBtn","newsModalTitle","newsModalIntro","newsModalMeta","newsModalBody",
@@ -447,6 +448,8 @@
       const scanner = page === "scanner";
       el.navScanner.classList.toggle("active", scanner);
       el.navNews.classList.toggle("active", !scanner);
+      el.dirScanner?.classList.toggle("active", scanner);
+      el.dirNews?.classList.toggle("active", !scanner);
       el.pageScanner.classList.toggle("active", scanner);
       el.pageNews.classList.toggle("active", !scanner);
     }
@@ -462,7 +465,25 @@
         panel?.classList.toggle("active", key === tab);
       });
     }
+    function openDirToolsPanel(){
+      if (!el.dirToolsPanel || !el.dirTools) return;
+      el.dirToolsPanel.hidden = false;
+      el.dirTools.classList.add("active");
+      el.dirTools.setAttribute("aria-expanded", "true");
+    }
+    function closeDirToolsPanel(){
+      if (!el.dirToolsPanel || !el.dirTools) return;
+      el.dirToolsPanel.hidden = true;
+      el.dirTools.classList.remove("active");
+      el.dirTools.setAttribute("aria-expanded", "false");
+    }
+    function toggleDirToolsPanel(){
+      if (!el.dirToolsPanel) return;
+      if (el.dirToolsPanel.hidden) openDirToolsPanel();
+      else closeDirToolsPanel();
+    }
     function openMainMenu(){
+      closeDirToolsPanel();
       el.mainMenuModal.classList.add("show");
       el.mainMenuModal.setAttribute("aria-hidden", "false");
     }
@@ -4339,6 +4360,46 @@
     el.copyJsonBtn.addEventListener("click", copyJson);
     el.openMainMenuBtn.addEventListener("click", openMainMenu);
     el.closeMainMenuBtn.addEventListener("click", closeMainMenu);
+    el.dirScanner?.addEventListener("click", () => {
+      switchPage("scanner");
+      closeDirToolsPanel();
+    });
+    el.dirNews?.addEventListener("click", () => {
+      switchPage("news");
+      closeDirToolsPanel();
+    });
+    el.dirTools?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleDirToolsPanel();
+    });
+    el.dirOpenWatchlist?.addEventListener("click", () => {
+      closeDirToolsPanel();
+      openSettingsModal("watchlist");
+    });
+    el.dirOpenRuntime?.addEventListener("click", () => {
+      closeDirToolsPanel();
+      openSettingsModal("runtime");
+    });
+    el.dirOpenScanner?.addEventListener("click", () => {
+      closeDirToolsPanel();
+      openSettingsModal("scanner");
+    });
+    el.dirRunNow?.addEventListener("click", () => {
+      closeDirToolsPanel();
+      runAll();
+    });
+    el.dirExportSelected?.addEventListener("click", () => {
+      closeDirToolsPanel();
+      exportSelectedImage();
+    });
+    el.dirChangePolygonKey?.addEventListener("click", async () => {
+      closeDirToolsPanel();
+      await promptAndSaveKey("polygon");
+    });
+    el.dirChangeFinnhubKey?.addEventListener("click", async () => {
+      closeDirToolsPanel();
+      await promptAndSaveKey("finnhub");
+    });
     el.navScanner.addEventListener("click", () => {
       switchPage("scanner");
       closeMainMenu();
@@ -4403,6 +4464,11 @@
     el.mainMenuModal.addEventListener("click", (event) => {
       if (event.target === el.mainMenuModal) closeMainMenu();
     });
+    document.addEventListener("click", (event) => {
+      if (el.dirToolsPanel?.hidden) return;
+      if (event.target?.closest?.("#dirToolsPanel") || event.target?.closest?.("#dirTools")) return;
+      closeDirToolsPanel();
+    });
     el.settingsModal.addEventListener("click", (event) => {
       if (event.target === el.settingsModal) closeSettingsModal();
     });
@@ -4434,6 +4500,7 @@
     el.watchGrid?.addEventListener("change", candidateToggleHandler);
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        closeDirToolsPanel();
         closeSettingsModal();
         closeMainMenu();
         closeStockModal();

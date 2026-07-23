@@ -47,6 +47,43 @@
       </optgroup>
     </select>
   </div>
+  <div class="top-directory" id="topDirectory">
+    <button class="dir-item active" id="dirScanner" type="button">掃描</button>
+    <button class="dir-item" id="dirNews" type="button">新聞</button>
+    <button class="dir-item dir-item-has-panel" id="dirTools" type="button" aria-expanded="false">功能目錄 ▾</button>
+  </div>
+  <div class="dir-panel" id="dirToolsPanel" hidden>
+    <div class="dir-panel-grid">
+      <button class="dir-panel-item" id="dirOpenWatchlist" type="button">
+        <span class="dir-panel-title">Watchlist</span>
+        <span class="dir-panel-sub">輸入 ticker 清單並更新數據</span>
+      </button>
+      <button class="dir-panel-item" id="dirOpenRuntime" type="button">
+        <span class="dir-panel-title">運行設定</span>
+        <span class="dir-panel-sub">調整回看範圍與更新節奏</span>
+      </button>
+      <button class="dir-panel-item" id="dirOpenScanner" type="button">
+        <span class="dir-panel-title">掃描條件</span>
+        <span class="dir-panel-sub">調整分數、RVOL、ATR% 與方向</span>
+      </button>
+      <button class="dir-panel-item" id="dirChangePolygonKey" type="button">
+        <span class="dir-panel-title">更改 Massive/Polygon Key</span>
+        <span class="dir-panel-sub">更新本機 API key</span>
+      </button>
+      <button class="dir-panel-item" id="dirChangeFinnhubKey" type="button">
+        <span class="dir-panel-title">更改 minishare 授權碼</span>
+        <span class="dir-panel-sub">更新新聞權限用授權碼</span>
+      </button>
+      <button class="dir-panel-item" id="dirRunNow" type="button">
+        <span class="dir-panel-title">即時更新</span>
+        <span class="dir-panel-sub">立即執行一輪更新</span>
+      </button>
+      <button class="dir-panel-item" id="dirExportSelected" type="button">
+        <span class="dir-panel-title">匯出已選</span>
+        <span class="dir-panel-sub">輸出已勾選圖卡資料</span>
+      </button>
+    </div>
+  </div>
   <div class="app">
     <main class="main">
       <section class="market-strip" style="display:none">
