@@ -30,7 +30,18 @@
     .app{
       width:min(1540px, calc(100% - 24px));
       margin:0 auto;
-      padding:128px 0 30px;
+      padding:126px 0 30px;
+    }
+    .top-control-row{
+      position:fixed;
+      top:10px;
+      left:10px;
+      right:10px;
+      z-index:48;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
     }
     .panel{
       background:linear-gradient(180deg, rgba(16,13,30,.96), rgba(9,10,18,.99));
@@ -44,28 +55,22 @@
       gap:16px;
     }
     .topbar-actions{
-      position:fixed;
-      top:16px;
-      left:16px;
-      z-index:35;
+      position:static;
+      z-index:auto;
       display:flex;
       gap:8px;
       align-items:flex-start;
     }
     .topbar-meta{
-      position:fixed;
-      top:16px;
-      right:16px;
-      z-index:35;
+      position:static;
+      z-index:auto;
       display:flex;
       align-items:center;
     }
     .top-directory{
-      position:fixed;
-      top:62px;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:44;
+      position:static;
+      transform:none;
+      z-index:auto;
       display:flex;
       gap:8px;
       align-items:center;
@@ -100,7 +105,7 @@
     }
     .dir-panel{
       position:fixed;
-      top:112px;
+      top:66px;
       left:50%;
       transform:translateX(-50%);
       z-index:46;
@@ -1387,7 +1392,7 @@
     @media (max-width:760px){
       .app{
         width:min(100% - 16px, 1540px);
-        padding-top:172px;
+        padding-top:144px;
       }
       .market-strip{grid-template-columns:1fr}
       .stats{grid-template-columns:repeat(2,1fr)}
@@ -1409,30 +1414,18 @@
       .candidate-top,.news-top,.alert-top{flex-direction:column}
       .modal{padding:10px}
       .menu-modal{padding:62px 10px 10px}
-      .topbar-actions{left:10px; right:10px; gap:8px}
-      .topbar-meta{
-        position:static;
-        display:block;
-        margin:0 8px 8px;
-      }
-      .top-directory{
-        left:10px;
-        right:10px;
-        transform:none;
-        top:62px;
+      .top-control-row{
+        left:8px;
+        right:8px;
+        gap:8px;
+        flex-wrap:wrap;
         justify-content:flex-start;
-        overflow-x:auto;
       }
-      .dir-item{
-        flex:0 0 auto;
-      }
-      .dir-panel{
-        left:10px;
-        right:10px;
-        width:auto;
-        transform:none;
-        top:108px;
-      }
+      .topbar-actions{gap:8px}
+      .topbar-meta{display:block}
+      .top-directory{justify-content:flex-start; overflow-x:auto;}
+      .dir-item{flex:0 0 auto;}
+      .dir-panel{left:10px; right:10px; width:auto; transform:none; top:100px;}
       .dir-panel-grid{
         grid-template-columns:1fr;
       }
@@ -1544,14 +1537,7 @@ body::before{
 }
 
 /* Homebrew-like top control bar (Hermes-style compact controls) */
-.topbar-actions,
-.topbar-meta{
-  top:10px;
-  z-index:45;
-}
-
 .topbar-actions{
-  left:12px;
   gap:6px;
   padding:6px;
   border-radius:14px;
@@ -1561,7 +1547,6 @@ body::before{
 }
 
 .topbar-meta{
-  right:12px;
   padding:6px;
   border-radius:14px;
   border:1px solid rgba(74,145,84,.35);

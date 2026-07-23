@@ -4358,8 +4358,8 @@
     el.clearSelectedBtn.addEventListener("click", clearSelected);
     el.exportBtn.addEventListener("click", exportCSV);
     el.copyJsonBtn.addEventListener("click", copyJson);
-    el.openMainMenuBtn.addEventListener("click", openMainMenu);
-    el.closeMainMenuBtn.addEventListener("click", closeMainMenu);
+    el.openMainMenuBtn?.addEventListener("click", openMainMenu);
+    el.closeMainMenuBtn?.addEventListener("click", closeMainMenu);
     el.dirScanner?.addEventListener("click", () => {
       switchPage("scanner");
       closeDirToolsPanel();
@@ -4400,11 +4400,11 @@
       closeDirToolsPanel();
       await promptAndSaveKey("finnhub");
     });
-    el.navScanner.addEventListener("click", () => {
+    el.navScanner?.addEventListener("click", () => {
       switchPage("scanner");
       closeMainMenu();
     });
-    el.navNews.addEventListener("click", () => {
+    el.navNews?.addEventListener("click", () => {
       switchPage("news");
       closeMainMenu();
     });
@@ -4461,7 +4461,7 @@
       btn.addEventListener("click", () => applyScannerPreset(btn.dataset.scannerPreset));
     });
     el.quickPresetSelect?.addEventListener("change", () => applyScannerPreset(el.quickPresetSelect.value));
-    el.mainMenuModal.addEventListener("click", (event) => {
+    el.mainMenuModal?.addEventListener("click", (event) => {
       if (event.target === el.mainMenuModal) closeMainMenu();
     });
     document.addEventListener("click", (event) => {
