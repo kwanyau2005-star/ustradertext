@@ -3,14 +3,14 @@
       --panel:rgba(6,12,10,.94);
       --panel-2:rgba(9,17,14,.98);
       --line:rgba(57,255,20,.24);
-      --line-strong:rgba(255,46,166,.42);
+      --line-strong:rgba(57,255,20,.42);
       --text:#e9fff4;
       --muted:#8ea79e;
       --orange:#39ff14;
-      --orange-2:#ff2ea6;
+      --orange-2:#9dff7a;
       --up:#39ff14;
-      --down:#ff4fb8;
-      --amber:#ff2ea6;
+      --down:#ff6b6b;
+      --amber:#9dff7a;
       --shadow:0 28px 66px rgba(0,0,0,.56);
       --radius:16px;
     }
@@ -21,7 +21,7 @@
       color:var(--text);
       background:
         radial-gradient(circle at top left, rgba(57,255,20,.14), transparent 24%),
-        radial-gradient(circle at top right, rgba(255,46,166,.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(57,255,20,.10), transparent 28%),
         radial-gradient(circle at 50% 0%, rgba(57,255,20,.06), transparent 34%),
         linear-gradient(180deg, #020406 0%, #05090d 50%, #06090d 100%);
       min-height:100vh;
@@ -1305,8 +1305,8 @@ body::before{
     ),
     repeating-linear-gradient(
       180deg,
-      rgba(255,46,166,.018) 0,
-      rgba(255,46,166,.018) 1px,
+      rgba(57,255,20,.016) 0,
+      rgba(57,255,20,.016) 1px,
       transparent 1px,
       transparent 60px
     );
@@ -1326,17 +1326,26 @@ body::before{
 
 .topbar-select{
   box-shadow:0 10px 26px rgba(0,0,0,.26), 0 0 0 1px rgba(57,255,20,.1);
+  border-color:rgba(57,255,20,.24);
+  background-image:
+    linear-gradient(180deg, rgba(7,15,13,.95), rgba(5,9,9,.98)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239dff7a' d='M2.2 4.3 6 8.1l3.8-3.8.9.9L6 9.9 1.3 5.2z'/%3E%3C/svg%3E");
 }
 
 .topbar-select:hover,.menu-launcher:hover,.secondary:hover,.candidate-tab:hover{
   border-color:rgba(57,255,20,.38);
 }
 
+.topbar-select:focus{
+  border-color:rgba(57,255,20,.52);
+  box-shadow:0 0 0 3px rgba(57,255,20,.14), 0 10px 26px rgba(0,0,0,.26);
+}
+
 .quick-run-btn,.primary,.candidate-tab.active,.loading-fill{
   color:#031507;
   border-color:rgba(57,255,20,.45);
-  background:linear-gradient(120deg, #39ff14, #8bff69 52%, #ff2ea6 100%);
-  box-shadow:0 0 0 1px rgba(57,255,20,.3), 0 14px 34px rgba(255,46,166,.28);
+  background:linear-gradient(120deg, #39ff14, #72ff4f 52%, #a7ff8f 100%);
+  box-shadow:0 0 0 1px rgba(57,255,20,.3), 0 14px 34px rgba(57,255,20,.22);
 }
 
 .quick-run-btn .small{
@@ -1344,9 +1353,9 @@ body::before{
 }
 
 .badge,.score-watch,.conviction-high{
-  color:#ffd9f0;
-  border-color:rgba(255,46,166,.4);
-  background:rgba(255,46,166,.16);
+  color:#d6ffd0;
+  border-color:rgba(57,255,20,.38);
+  background:rgba(57,255,20,.14);
 }
 
 .menu-launcher .small,.subtext,.meta,.news-source,.news-summary,.selected-meta{
@@ -1354,12 +1363,17 @@ body::before{
 }
 
 .candidate.selected{
-  box-shadow:inset 0 0 0 1px rgba(57,255,20,.45), 0 0 0 1px rgba(255,46,166,.2), 0 10px 30px rgba(57,255,20,.14);
+  box-shadow:inset 0 0 0 1px rgba(57,255,20,.45), 0 0 0 1px rgba(57,255,20,.2), 0 10px 30px rgba(57,255,20,.14);
   background:linear-gradient(180deg, rgba(8,20,15,.98), rgba(6,12,11,.99));
 }
 
 .candidate-watch::before{
-  background:linear-gradient(90deg, rgba(255,46,166,.95), rgba(255,46,166,.18));
+  background:linear-gradient(90deg, rgba(57,255,20,.95), rgba(57,255,20,.18));
+}
+
+.candidate-watch .candidate-chart{
+  background:linear-gradient(180deg, rgba(57,255,20,.13), rgba(15,36,22,.30) 58%, rgba(255,255,255,.01));
+  box-shadow:inset 0 0 0 1px rgba(57,255,20,.09);
 }
 
 .ticket-cell.entry{
@@ -1368,8 +1382,8 @@ body::before{
 }
 
 .ticket-cell.stop{
-  border-color:rgba(255,46,166,.34);
-  background:linear-gradient(180deg, rgba(255,46,166,.16), rgba(255,255,255,.015));
+  border-color:rgba(255,107,107,.34);
+  background:linear-gradient(180deg, rgba(255,107,107,.14), rgba(255,255,255,.015));
 }
 
 .ticket-cell.tp{
@@ -1391,6 +1405,12 @@ body::before{
   background:rgba(57,255,20,.08);
 }
 
+.score-watch,.conviction-high,.impact-neutral,.pattern-chip.neutral{
+  background:rgba(57,255,20,.14);
+  border-color:rgba(57,255,20,.28);
+  color:#d6ffd0;
+}
+
 a.link{
-  color:#ff67bf;
+  color:#7aff5d;
 }
