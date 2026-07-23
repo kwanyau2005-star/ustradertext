@@ -1955,3 +1955,57 @@ a.link{
 .candidate-tabs{
   margin-bottom:10px;
 }
+
+/* v30: simplify post-update stock cards */
+.scanner-panel .candidate{
+  padding:12px;
+}
+
+.scanner-panel .candidate-name,
+.scanner-panel .candidate-micro,
+.scanner-panel .candidate-summary-grid,
+.scanner-panel .risk-row,
+.scanner-panel .deployment-strip,
+.scanner-panel .candidate-facts,
+.scanner-panel .reason,
+.scanner-panel .pattern-chip-row,
+.scanner-panel .chart-readout,
+.scanner-panel .chart-subtitle{
+  display:none;
+}
+
+.scanner-panel .terminal-chip-row{
+  margin:2px 0 8px;
+}
+
+.scanner-panel .terminal-chip-row .terminal-chip.soft:not(.pick-toggle){
+  display:none;
+}
+
+.scanner-panel .candidate-chart{
+  margin:8px 0 8px;
+  min-height:188px;
+  padding:10px;
+}
+
+.scanner-panel .candidate-chart-plot{
+  height:156px;
+}
+
+.scanner-panel .chart-head{
+  margin-bottom:6px;
+}
+
+.scanner-panel .chart-title{
+  font-size:12px;
+  letter-spacing:.08em;
+}
+
+.scanner-panel .ticket-strip{
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  margin:8px 0 0;
+}
+
+.scanner-panel .ticket-strip .ticket-cell:nth-child(4){
+  display:none;
+}
