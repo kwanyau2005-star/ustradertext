@@ -1898,3 +1898,60 @@ a.link{
     grid-template-columns:1fr;
   }
 }
+
+/* v29: minimalist cleanup (remove extra visual blocks) */
+.hermes-brand-row{
+  display:none;
+}
+
+.hermes-header{
+  padding:10px;
+  gap:8px;
+}
+
+.hermes-header .top-control-row{
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px;
+}
+
+.hermes-header .topbar-meta{
+  grid-column:1 / -1;
+  width:100%;
+}
+
+.hermes-header .topbar-select{
+  width:100%;
+  min-width:0;
+}
+
+.hermes-app.app{
+  padding-top:10px;
+}
+
+.hermes-status-panel{
+  padding:10px;
+}
+
+.hermes-status-panel .terminal-stats{
+  grid-template-columns:repeat(4, minmax(0,1fr));
+}
+
+.hermes-status-panel .terminal-stats .stat:nth-child(n+5){
+  display:none;
+}
+
+.hermes-page-grid{
+  grid-template-columns:1fr;
+}
+
+.hermes-side-column{
+  display:none;
+}
+
+.scanner-shell .list-card{
+  padding:12px;
+}
+
+.candidate-tabs{
+  margin-bottom:10px;
+}
