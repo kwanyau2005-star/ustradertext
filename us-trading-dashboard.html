@@ -15,42 +15,40 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="topbar-actions">
-    <button class="menu-launcher" id="openMainMenuBtn">
-      選單
-      <span class="small">撳我再揀功能</span>
-    </button>
-    <button class="quick-run-btn" id="topRunBtn">
-      更新
-      <span class="small">直接更新數據</span>
-    </button>
-    <button class="quick-run-btn" id="topExportBtn">
-      匯出學習資料
-      <span class="small">輸出已選名單</span>
-    </button>
-  </div>
-  <div class="topbar-meta">
-    <select id="quickPresetSelect" class="topbar-select">
-      <optgroup label="推薦">
-        <option value="smart">智能建議（推薦）</option>
-      </optgroup>
-      <optgroup label="通用">
-        <option value="balanced">平衡模式</option>
-        <option value="liquidityFocus">高流動性優先</option>
-      </optgroup>
-      <optgroup label="做多">
-        <option value="steadyLong">穩陣做多</option>
-        <option value="aggressiveBreakout">進取突破</option>
-      </optgroup>
-      <optgroup label="做空">
-        <option value="defensiveShort">防守偏空</option>
-      </optgroup>
-    </select>
-  </div>
-  <div class="top-directory" id="topDirectory">
-    <button class="dir-item active" id="dirScanner" type="button">掃描</button>
-    <button class="dir-item" id="dirNews" type="button">新聞</button>
-    <button class="dir-item dir-item-has-panel" id="dirTools" type="button" aria-expanded="false">功能目錄 ▾</button>
+  <div class="top-control-row">
+    <div class="topbar-actions">
+      <button class="quick-run-btn" id="topRunBtn">
+        更新
+        <span class="small">直接更新數據</span>
+      </button>
+      <button class="quick-run-btn" id="topExportBtn">
+        匯出學習資料
+        <span class="small">輸出已選名單</span>
+      </button>
+    </div>
+    <div class="top-directory" id="topDirectory">
+      <button class="dir-item active" id="dirScanner" type="button">掃描</button>
+      <button class="dir-item" id="dirNews" type="button">新聞</button>
+      <button class="dir-item dir-item-has-panel" id="dirTools" type="button" aria-expanded="false">功能目錄 ▾</button>
+    </div>
+    <div class="topbar-meta">
+      <select id="quickPresetSelect" class="topbar-select">
+        <optgroup label="推薦">
+          <option value="smart">智能建議（推薦）</option>
+        </optgroup>
+        <optgroup label="通用">
+          <option value="balanced">平衡模式</option>
+          <option value="liquidityFocus">高流動性優先</option>
+        </optgroup>
+        <optgroup label="做多">
+          <option value="steadyLong">穩陣做多</option>
+          <option value="aggressiveBreakout">進取突破</option>
+        </optgroup>
+        <optgroup label="做空">
+          <option value="defensiveShort">防守偏空</option>
+        </optgroup>
+      </select>
+    </div>
   </div>
   <div class="dir-panel" id="dirToolsPanel" hidden>
     <div class="dir-panel-grid">
