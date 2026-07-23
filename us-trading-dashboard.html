@@ -15,118 +15,94 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="top-control-row">
-    <div class="topbar-actions">
-      <button class="quick-run-btn" id="topRunBtn">
-        更新
-        <span class="small">直接更新數據</span>
-      </button>
-      <button class="quick-run-btn" id="topExportBtn">
-        匯出學習資料
-        <span class="small">輸出已選名單</span>
-      </button>
-    </div>
-    <div class="top-directory" id="topDirectory">
-      <button class="dir-item active" id="dirScanner" type="button">掃描</button>
-      <button class="dir-item" id="dirNews" type="button">新聞</button>
-      <button class="dir-item dir-item-has-panel" id="dirTools" type="button" aria-expanded="false">功能目錄 ▾</button>
-    </div>
-    <div class="topbar-meta">
-      <select id="quickPresetSelect" class="topbar-select">
-        <optgroup label="推薦">
-          <option value="smart">智能建議（推薦）</option>
-        </optgroup>
-        <optgroup label="通用">
-          <option value="balanced">平衡模式</option>
-          <option value="liquidityFocus">高流動性優先</option>
-        </optgroup>
-        <optgroup label="做多">
-          <option value="steadyLong">穩陣做多</option>
-          <option value="aggressiveBreakout">進取突破</option>
-        </optgroup>
-        <optgroup label="做空">
-          <option value="defensiveShort">防守偏空</option>
-        </optgroup>
-      </select>
-    </div>
-  </div>
-  <div class="dir-panel" id="dirToolsPanel" hidden>
-    <div class="dir-panel-grid">
-      <button class="dir-panel-item" id="dirOpenWatchlist" type="button">
-        <span class="dir-panel-title">Watchlist</span>
-        <span class="dir-panel-sub">輸入 ticker 清單並更新數據</span>
-      </button>
-      <button class="dir-panel-item" id="dirOpenRuntime" type="button">
-        <span class="dir-panel-title">運行設定</span>
-        <span class="dir-panel-sub">調整回看範圍與更新節奏</span>
-      </button>
-      <button class="dir-panel-item" id="dirOpenScanner" type="button">
-        <span class="dir-panel-title">掃描條件</span>
-        <span class="dir-panel-sub">調整分數、RVOL、ATR% 與方向</span>
-      </button>
-      <button class="dir-panel-item" id="dirChangePolygonKey" type="button">
-        <span class="dir-panel-title">更改 Massive/Polygon Key</span>
-        <span class="dir-panel-sub">更新本機 API key</span>
-      </button>
-      <button class="dir-panel-item" id="dirChangeFinnhubKey" type="button">
-        <span class="dir-panel-title">更改 minishare 授權碼</span>
-        <span class="dir-panel-sub">更新新聞權限用授權碼</span>
-      </button>
-      <button class="dir-panel-item" id="dirRunNow" type="button">
-        <span class="dir-panel-title">即時更新</span>
-        <span class="dir-panel-sub">立即執行一輪更新</span>
-      </button>
-      <button class="dir-panel-item" id="dirExportSelected" type="button">
-        <span class="dir-panel-title">匯出已選</span>
-        <span class="dir-panel-sub">輸出已勾選圖卡資料</span>
-      </button>
-    </div>
-  </div>
-  <div class="app">
-    <main class="main">
-      <section class="market-strip" style="display:none">
-        <article class="market-card">
-          <div class="market-head">
-            <div>
-              <div class="market-title" id="marketNqTitle">NDX</div>
-              <div class="market-sub" id="marketNqSub">Nasdaq 100 指數</div>
-            </div>
-            <div class="market-price">
-              <div class="market-last" id="marketNqPrice">--</div>
-              <div class="market-change" id="marketNqChange">--</div>
-              <div class="market-updated" id="marketNqUpdated">更新 --</div>
-            </div>
-          </div>
-          <div class="market-chart" id="marketNqChart"></div>
-        </article>
-        <article class="market-card">
-          <div class="market-head">
-            <div>
-              <div class="market-title" id="marketSpxTitle">SPY</div>
-              <div class="market-sub" id="marketSpxSub">S&P 500 ETF 代理</div>
-            </div>
-            <div class="market-price">
-              <div class="market-last" id="marketSpxPrice">--</div>
-              <div class="market-change" id="marketSpxChange">--</div>
-              <div class="market-updated" id="marketSpxUpdated">更新 --</div>
-            </div>
-          </div>
-          <div class="market-chart" id="marketSpxChart"></div>
-        </article>
-      </section>
-      <section class="hero panel terminal-hero">
-        <div class="terminal-head">
-          <div class="terminal-copy">
-            <div class="badge">USTradar Terminal</div>
-            <div class="terminal-title">候選 + 圖表優先</div>
-            <div class="terminal-subtitle">黑綠霓虹交易終端版會先聚焦做多、做空同觀察名單，保留你最需要嘅結果、風險同市場狀態，減少唔必要嘅摘要雜訊。</div>
-          </div>
-          <div class="hero-summary">
-            <div class="mini"><div class="k">最佳做多</div><div class="v" id="bestLongTicker">--</div></div>
-            <div class="mini"><div class="k">最佳做空</div><div class="v" id="bestShortTicker">--</div></div>
-          </div>
+  <div class="hermes-shell">
+    <header class="hermes-header panel">
+      <div class="hermes-brand-row">
+        <div class="hermes-brand">
+          <div class="badge">USTradar Terminal</div>
+          <h1 class="hermes-title">GEX Heatmap Dashboard</h1>
+          <p class="terminal-subtitle">Hermes 風格重排版：上方單列導航、中央主視圖、右側即時市場與指標，將掃描同新聞放入同一套工作台節奏。</p>
         </div>
-        <div>
+        <div class="hero-summary hermes-hero-summary">
+          <div class="mini"><div class="k">最佳做多</div><div class="v" id="bestLongTicker">--</div></div>
+          <div class="mini"><div class="k">最佳做空</div><div class="v" id="bestShortTicker">--</div></div>
+        </div>
+      </div>
+
+      <div class="top-control-row">
+        <div class="top-directory" id="topDirectory">
+          <button class="dir-item active" id="dirScanner" type="button">Scanner</button>
+          <button class="dir-item" id="dirNews" type="button">News</button>
+          <button class="dir-item dir-item-has-panel" id="dirTools" type="button" aria-expanded="false">Tools ▾</button>
+        </div>
+        <div class="topbar-actions">
+          <button class="quick-run-btn" id="topRunBtn" type="button">
+            更新
+            <span class="small">直接更新數據</span>
+          </button>
+          <button class="quick-run-btn" id="topExportBtn" type="button">
+            匯出學習資料
+            <span class="small">輸出已選名單</span>
+          </button>
+        </div>
+        <div class="topbar-meta">
+          <select id="quickPresetSelect" class="topbar-select">
+            <optgroup label="推薦">
+              <option value="smart">智能建議（推薦）</option>
+            </optgroup>
+            <optgroup label="通用">
+              <option value="balanced">平衡模式</option>
+              <option value="liquidityFocus">高流動性優先</option>
+            </optgroup>
+            <optgroup label="做多">
+              <option value="steadyLong">穩陣做多</option>
+              <option value="aggressiveBreakout">進取突破</option>
+            </optgroup>
+            <optgroup label="做空">
+              <option value="defensiveShort">防守偏空</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+
+    </header>
+
+    <div class="dir-panel" id="dirToolsPanel" hidden>
+      <div class="dir-panel-grid">
+        <button class="dir-panel-item" id="dirOpenWatchlist" type="button">
+          <span class="dir-panel-title">Watchlist</span>
+          <span class="dir-panel-sub">輸入 ticker 清單並更新數據</span>
+        </button>
+        <button class="dir-panel-item" id="dirOpenRuntime" type="button">
+          <span class="dir-panel-title">運行設定</span>
+          <span class="dir-panel-sub">調整回看範圍與更新節奏</span>
+        </button>
+        <button class="dir-panel-item" id="dirOpenScanner" type="button">
+          <span class="dir-panel-title">掃描條件</span>
+          <span class="dir-panel-sub">調整分數、RVOL、ATR% 與方向</span>
+        </button>
+        <button class="dir-panel-item" id="dirChangePolygonKey" type="button">
+          <span class="dir-panel-title">更改 Massive/Polygon Key</span>
+          <span class="dir-panel-sub">更新本機 API key</span>
+        </button>
+        <button class="dir-panel-item" id="dirChangeFinnhubKey" type="button">
+          <span class="dir-panel-title">更改 minishare 授權碼</span>
+          <span class="dir-panel-sub">更新新聞權限用授權碼</span>
+        </button>
+        <button class="dir-panel-item" id="dirRunNow" type="button">
+          <span class="dir-panel-title">即時更新</span>
+          <span class="dir-panel-sub">立即執行一輪更新</span>
+        </button>
+        <button class="dir-panel-item" id="dirExportSelected" type="button">
+          <span class="dir-panel-title">匯出已選</span>
+          <span class="dir-panel-sub">輸出已勾選圖卡資料</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="app hermes-app">
+      <main class="main hermes-main">
+        <section class="hero panel terminal-hero hermes-status-panel">
           <div class="stats terminal-stats">
             <div class="stat">
               <div class="k">資料狀態</div>
@@ -144,115 +120,158 @@
             <div class="stat"><div class="k">API失敗 / 限速</div><div class="v" id="heroErrors">0</div></div>
             <div class="stat hide-noise"><div class="k">高影響新聞</div><div class="v" id="heroAlerts">0</div></div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="page active" id="pageScanner">
-        <div class="analysis-grid">
-          <div class="analysis-box">
-            <div class="label">股票樣本數</div>
-            <div class="value" id="sampleCount">0</div>
-            <div class="subtext">完成拉取後實際參與評分。</div>
-          </div>
-          <div class="analysis-box">
-            <div class="label">最強方向</div>
-            <div class="value" id="dominantBias">--</div>
-            <div class="subtext">睇下而家偏多 setup 多，定偏空 setup 多。</div>
-          </div>
-          <div class="analysis-box">
-            <div class="label">API失敗 / 限速</div>
-            <div class="value" id="errorCount">0</div>
-            <div class="subtext">代表今輪 API 拉取失敗、超時或被限速嘅次數。</div>
-          </div>
-          <div class="analysis-box">
-            <div class="label">上次掃描</div>
-            <div class="value" id="previousScanTime">--</div>
-            <div class="subtext">方便同今輪結果對比變化。</div>
-          </div>
-        </div>
-
-        <div class="scanner-shell">
-          <div class="list-card">
-            <div class="candidate-tabs">
-              <button class="candidate-tab active" id="scannerTabLong">做多候選</button>
-              <button class="candidate-tab" id="scannerTabShort">做空候選</button>
-              <button class="candidate-tab" id="scannerTabWatch">觀察名單</button>
-            </div>
-            <div class="scanner-panels">
-              <div class="scanner-panel active" id="scannerPanelLong">
-                <h2 class="section-title">做多候選</h2>
-                <div id="longGrid" class="candidate-grid"></div>
-              </div>
-              <div class="scanner-panel" id="scannerPanelShort">
-                <h2 class="section-title">做空候選</h2>
-                <div id="shortGrid" class="candidate-grid"></div>
-              </div>
-              <div class="scanner-panel" id="scannerPanelWatch">
-                <h2 class="section-title">觀察名單</h2>
-                <div id="watchGrid" class="candidate-grid"></div>
+        <section class="page active" id="pageScanner">
+          <div class="hermes-page-grid">
+            <div class="hermes-primary-column">
+              <div class="scanner-shell">
+                <div class="list-card">
+                  <div class="candidate-tabs">
+                    <button class="candidate-tab active" id="scannerTabLong" type="button">做多候選</button>
+                    <button class="candidate-tab" id="scannerTabShort" type="button">做空候選</button>
+                    <button class="candidate-tab" id="scannerTabWatch" type="button">觀察名單</button>
+                  </div>
+                  <div class="scanner-panels">
+                    <div class="scanner-panel active" id="scannerPanelLong">
+                      <h2 class="section-title">做多候選</h2>
+                      <div id="longGrid" class="candidate-grid"></div>
+                    </div>
+                    <div class="scanner-panel" id="scannerPanelShort">
+                      <h2 class="section-title">做空候選</h2>
+                      <div id="shortGrid" class="candidate-grid"></div>
+                    </div>
+                    <div class="scanner-panel" id="scannerPanelWatch">
+                      <h2 class="section-title">觀察名單</h2>
+                      <div id="watchGrid" class="candidate-grid"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <section class="page" id="pageNews">
-        <div class="analysis-grid">
-          <div class="analysis-box">
-            <div class="label">全新聞數</div>
-            <div class="value" id="importantCount">0</div>
-            <div class="subtext">公司新聞同市場新聞合併後總數。</div>
-          </div>
-          <div class="analysis-box">
-            <div class="label">高影響新聞</div>
-            <div class="value" id="companyNewsCount">0</div>
-            <div class="subtext">重點先睇呢批。</div>
-          </div>
-          <div class="analysis-box">
-            <div class="label">受影響股票</div>
-            <div class="value" id="marketNewsCount">0</div>
-            <div class="subtext">今輪新聞涉及到幾多隻股票。</div>
-          </div>
-        </div>
+            <aside class="hermes-side-column">
+              <div class="analysis-grid hermes-kpi-grid">
+                <div class="analysis-box">
+                  <div class="label">股票樣本數</div>
+                  <div class="value" id="sampleCount">0</div>
+                  <div class="subtext">完成拉取後實際參與評分。</div>
+                </div>
+                <div class="analysis-box">
+                  <div class="label">最強方向</div>
+                  <div class="value" id="dominantBias">--</div>
+                  <div class="subtext">睇下而家偏多 setup 多，定偏空 setup 多。</div>
+                </div>
+                <div class="analysis-box">
+                  <div class="label">API失敗 / 限速</div>
+                  <div class="value" id="errorCount">0</div>
+                  <div class="subtext">代表今輪 API 拉取失敗、超時或被限速嘅次數。</div>
+                </div>
+                <div class="analysis-box">
+                  <div class="label">上次掃描</div>
+                  <div class="value" id="previousScanTime">--</div>
+                  <div class="subtext">方便同今輪結果對比變化。</div>
+                </div>
+              </div>
 
-        <div class="list-card">
-          <h2 class="section-title">新聞分類日程表</h2>
-          <div class="news-terminal-bar">
-            <div class="news-terminal-controls">
-            <div class="tag" style="display:flex; align-items:center; gap:10px;">
-              <span style="font-weight:900;">篩選</span>
-              <select id="newsFilterMode" class="topbar-select" style="min-width:160px;">
-                <option value="watchlist_only">只顯示 watchlist</option>
-                <option value="us_only" selected>只顯示影響美股</option>
-                <option value="high_only">只顯示高影響</option>
-                <option value="all">顯示全部</option>
-              </select>
-            </div>
-            <div class="tag" style="display:flex; align-items:center; gap:10px;">
-              <span style="font-weight:900;">搜尋</span>
-              <input id="newsSearch" class="mono" placeholder="ticker / 關鍵字（例：AAPL 或 NVDA,AMD）" style="width:min(420px, 62vw); padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:#e8eef7;" />
-            </div>
-            <label class="tag" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-              <input id="newsPinHighToggle" type="checkbox" checked style="accent-color:#38bdf8; transform:scale(1.05);" />
-              <span style="font-weight:900;">高影響置頂</span>
-            </label>
-            <label class="tag" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-              <input id="newsCompactToggle" type="checkbox" checked style="accent-color:#38bdf8; transform:scale(1.05);" />
-              <span style="font-weight:900;">簡化文字（點入睇詳細）</span>
-            </label>
-            </div>
+              <section class="market-strip">
+                <article class="market-card">
+                  <div class="market-head">
+                    <div>
+                      <div class="market-title" id="marketNqTitle">NDX</div>
+                      <div class="market-sub" id="marketNqSub">Nasdaq 100 指數</div>
+                    </div>
+                    <div class="market-price">
+                      <div class="market-last" id="marketNqPrice">--</div>
+                      <div class="market-change" id="marketNqChange">--</div>
+                      <div class="market-updated" id="marketNqUpdated">更新 --</div>
+                    </div>
+                  </div>
+                  <div class="market-chart" id="marketNqChart"></div>
+                </article>
+                <article class="market-card">
+                  <div class="market-head">
+                    <div>
+                      <div class="market-title" id="marketSpxTitle">SPY</div>
+                      <div class="market-sub" id="marketSpxSub">S&P 500 ETF 代理</div>
+                    </div>
+                    <div class="market-price">
+                      <div class="market-last" id="marketSpxPrice">--</div>
+                      <div class="market-change" id="marketSpxChange">--</div>
+                      <div class="market-updated" id="marketSpxUpdated">更新 --</div>
+                    </div>
+                  </div>
+                  <div class="market-chart" id="marketSpxChart"></div>
+                </article>
+              </section>
+            </aside>
           </div>
-          <div class="subtext" style="margin:-6px 0 12px;">提示：撳任何一條新聞可以彈出詳細內容；高影響會用藍色發光星星標示。</div>
-          <div id="alertsGrid" class="news-calendar"></div>
-        </div>
+        </section>
 
-        <div class="snapshot" hidden>
-          <h2 class="section-title">新聞原始 / 整理結果</h2>
-          <div id="tagRow" class="tag-row"></div>
-          <pre id="jsonPreview"></pre>
-        </div>
-      </section>
-    </main>
+        <section class="page" id="pageNews">
+          <div class="hermes-page-grid">
+            <div class="hermes-primary-column">
+              <div class="list-card">
+                <h2 class="section-title">新聞分類日程表</h2>
+                <div class="news-terminal-bar">
+                  <div class="news-terminal-controls">
+                  <div class="tag" style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-weight:900;">篩選</span>
+                    <select id="newsFilterMode" class="topbar-select" style="min-width:160px;">
+                      <option value="watchlist_only">只顯示 watchlist</option>
+                      <option value="us_only" selected>只顯示影響美股</option>
+                      <option value="high_only">只顯示高影響</option>
+                      <option value="all">顯示全部</option>
+                    </select>
+                  </div>
+                  <div class="tag" style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-weight:900;">搜尋</span>
+                    <input id="newsSearch" class="mono" placeholder="ticker / 關鍵字（例：AAPL 或 NVDA,AMD）" style="width:min(420px, 62vw); padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.03); color:#e8eef7;" />
+                  </div>
+                  <label class="tag" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input id="newsPinHighToggle" type="checkbox" checked style="accent-color:#38bdf8; transform:scale(1.05);" />
+                    <span style="font-weight:900;">高影響置頂</span>
+                  </label>
+                  <label class="tag" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                    <input id="newsCompactToggle" type="checkbox" checked style="accent-color:#38bdf8; transform:scale(1.05);" />
+                    <span style="font-weight:900;">簡化文字（點入睇詳細）</span>
+                  </label>
+                  </div>
+                </div>
+                <div class="subtext" style="margin:-6px 0 12px;">提示：撳任何一條新聞可以彈出詳細內容；高影響會用藍色發光星星標示。</div>
+                <div id="alertsGrid" class="news-calendar"></div>
+              </div>
+            </div>
+
+            <aside class="hermes-side-column">
+              <div class="analysis-grid hermes-kpi-grid">
+                <div class="analysis-box">
+                  <div class="label">全新聞數</div>
+                  <div class="value" id="importantCount">0</div>
+                  <div class="subtext">公司新聞同市場新聞合併後總數。</div>
+                </div>
+                <div class="analysis-box">
+                  <div class="label">高影響新聞</div>
+                  <div class="value" id="companyNewsCount">0</div>
+                  <div class="subtext">重點先睇呢批。</div>
+                </div>
+                <div class="analysis-box">
+                  <div class="label">受影響股票</div>
+                  <div class="value" id="marketNewsCount">0</div>
+                  <div class="subtext">今輪新聞涉及到幾多隻股票。</div>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="snapshot" hidden>
+            <h2 class="section-title">新聞原始 / 整理結果</h2>
+            <div id="tagRow" class="tag-row"></div>
+            <pre id="jsonPreview"></pre>
+          </div>
+        </section>
+      </main>
+    </div>
   </div>
 
   <div class="modal" id="newsModal" aria-hidden="true">
