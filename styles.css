@@ -1,11 +1,11 @@
     :root{
-      --bg:#030507;
-      --panel:rgba(6,12,10,.94);
-      --panel-2:rgba(9,17,14,.98);
+      --bg:#04070a;
+      --panel:rgba(7,12,10,.94);
+      --panel-2:rgba(10,17,14,.98);
       --line:rgba(57,255,20,.24);
       --line-strong:rgba(57,255,20,.42);
-      --text:#e9fff4;
-      --muted:#8ea79e;
+      --text:#dcf7d7;
+      --muted:#7f9c87;
       --orange:#39ff14;
       --orange-2:#9dff7a;
       --up:#39ff14;
@@ -1400,7 +1400,83 @@ body::before{
   box-shadow:0 0 0 3px rgba(57,255,20,.14), 0 10px 26px rgba(0,0,0,.26);
 }
 
-.quick-run-btn,.primary,.candidate-tab.active,.loading-fill{
+/* Homebrew-like top control bar (Hermes-style compact controls) */
+.topbar-actions,
+.topbar-meta{
+  top:10px;
+  z-index:45;
+}
+
+.topbar-actions{
+  left:12px;
+  gap:6px;
+  padding:6px;
+  border-radius:14px;
+  border:1px solid rgba(74,145,84,.35);
+  background:linear-gradient(180deg, rgba(8,14,12,.94), rgba(7,11,10,.98));
+  box-shadow:0 10px 24px rgba(0,0,0,.36), inset 0 0 0 1px rgba(97,180,103,.08);
+}
+
+.topbar-meta{
+  right:12px;
+  padding:6px;
+  border-radius:14px;
+  border:1px solid rgba(74,145,84,.35);
+  background:linear-gradient(180deg, rgba(8,14,12,.94), rgba(7,11,10,.98));
+  box-shadow:0 10px 24px rgba(0,0,0,.36), inset 0 0 0 1px rgba(97,180,103,.08);
+}
+
+.menu-launcher,
+.quick-run-btn{
+  min-height:44px;
+  border-radius:10px;
+  padding:8px 13px;
+  border:1px solid rgba(96,173,104,.34);
+  background:linear-gradient(180deg, rgba(11,20,16,.95), rgba(8,13,11,.98));
+  color:#cff6c5;
+  box-shadow:none;
+}
+
+.menu-launcher:hover,
+.quick-run-btn:hover{
+  border-color:rgba(120,215,130,.58);
+  box-shadow:0 0 0 1px rgba(120,215,130,.25), 0 8px 20px rgba(25,67,33,.35);
+}
+
+.quick-run-btn,
+.primary{
+  background:linear-gradient(180deg, rgba(13,24,18,.98), rgba(8,14,11,.98));
+  color:#d6ffd0;
+  border-color:rgba(120,215,130,.45);
+}
+
+.menu-launcher .small,
+.quick-run-btn .small{
+  color:#87a98f;
+}
+
+.topbar-select{
+  min-width:240px;
+  width:240px;
+  padding:10px 38px 10px 12px;
+  border-radius:10px;
+  border-color:rgba(96,173,104,.36);
+  background-image:
+    linear-gradient(180deg, rgba(11,20,16,.95), rgba(8,13,11,.98)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 12 12'%3E%3Cpath fill='%2378d782' d='M2.2 4.3 6 8.1l3.8-3.8.9.9L6 9.9 1.3 5.2z'/%3E%3C/svg%3E");
+  box-shadow:none;
+}
+
+.topbar-select:hover{
+  border-color:rgba(120,215,130,.58);
+}
+
+.topbar-select:focus{
+  border-color:rgba(120,215,130,.64);
+  box-shadow:0 0 0 3px rgba(120,215,130,.16);
+}
+
+.candidate-tab.active,.loading-fill{
   color:#031507;
   border-color:rgba(57,255,20,.45);
   background:linear-gradient(120deg, #39ff14, #72ff4f 52%, #a7ff8f 100%);
