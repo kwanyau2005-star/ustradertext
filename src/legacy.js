@@ -3322,17 +3322,23 @@
       article.dataset.direction = item.direction || mode;
       const directionLabel = mode === "long" ? "做多" : mode === "short" ? "做空" : "觀察";
       const priceDelta = Number.isFinite(item.changePct) ? `${item.changePct >= 0 ? "+" : ""}${item.changePct.toFixed(2)}%` : `${item.weekChange >= 0 ? "+" : ""}${item.weekChange.toFixed(1)}%`;
+      const priceDeltaClass = (Number.isFinite(item.changePct) ? item.changePct : item.weekChange) >= 0 ? "is-up" : "is-down";
       const scoreStrongClass = item.score >= 85 ? " score-strong" : "";
       article.innerHTML = `
         <div class="candidate-top">
           <div class="candidate-primary">
             <div class="candidate-title-wrap">
               <div class="ticker">${item.symbol}</div>
+              <div class="candidate-name">${item.name || item.symbol}</div>
+              <div class="candidate-meta-row">
+                <span class="candidate-mode-pill">${directionLabel}</span>
+                <span class="candidate-micro">${item.setupStyleLabel || "一般"} · ${item.marketVolatilityLabel || "正常波動"}</span>
+              </div>
             </div>
             <div class="candidate-price-stack">
               <div class="score-pill ${scoreClass}${scoreStrongClass}">Score ${item.score}</div>
               <div class="candidate-price">$${formatPrice(item.price)}</div>
-              <div class="candidate-subprice">${priceDelta}</div>
+              <div class="candidate-subprice ${priceDeltaClass}">${priceDelta}</div>
             </div>
           </div>
         </div>
@@ -3375,6 +3381,7 @@
           <div class="terminal-metric"><div class="k">板塊同步</div><div class="v">${item.sectorRsLabel || "--"}</div></div>
           <div class="terminal-metric"><div class="k">量能</div><div class="v">${mode === "short" ? (item.shortVolumeLabel || "普通") : (item.longVolumeLabel || "普通")}</div></div>
           <div class="terminal-metric"><div class="k">Gap</div><div class="v">${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}%</div></div>
+          <div class="terminal-metric"><div class="k">結構</div><div class="v">${item.structureCleanLabel || "--"}</div></div>
         </div>
         <div class="risk-row">
           <div class="risk-badge ${conviction.cls}">${conviction.text}</div>
@@ -3426,12 +3433,16 @@
             <div class="ticket-note">${item.tpBasis || "ATR / 結構位"}</div>
           </div>
         </div>
-        <div class="candidate-note">RS：${item.rsLabel || "跟大盤同步"} · 板塊：${item.sectorProxy || "--"} (${item.sectorRsLabel || "--"}) · 波動：${item.marketVolatilityLabel || "正常波動"} · Gap：${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}% (${item.gapLabel || "正常"})</div>
-        <div class="candidate-note">量能：${mode === "short" ? (item.shortVolumeLabel || "普通") : (item.longVolumeLabel || "普通")} · 結構：${item.structureCleanLabel || "未知"}${item.structureRoomAtr != null ? `（${item.structureRoomAtr} ATR）` : ""} · 風格：${item.setupStyleLabel || "一般"} · RR：${item.rr1 ? item.rr1.toFixed(1) : "--"} (${item.rrLabel || "--"})</div>
-        <div class="candidate-note">日線：${item.dailyStructure?.label || "未知"} · 區間位置：${Math.round((item.dailyStructure?.rangePos20 ?? 0.5) * 100)}% · 3日延伸：${Number(item.dailyStructure?.stretchAtr || 0).toFixed(1)} ATR</div>
-        <div class="candidate-note">入場依據：${item.entryBasis || "ATR"} · TP：${item.tpBasis || "ATR"} · 位階：${mode === "short"
-          ? `${item.structure?.prevDayLow ? `昨低 ${formatPrice(item.structure.prevDayLow)}` : "昨低 --"} / ${item.structure?.orbLow ? `ORB ${formatPrice(item.structure.orbLow)}` : "ORB --"}`
-          : `${item.structure?.prevDayHigh ? `昨高 ${formatPrice(item.structure.prevDayHigh)}` : "昨高 --"} / ${item.structure?.orbHigh ? `ORB ${formatPrice(item.structure.orbHigh)}` : "ORB --"}`}</div>
+        <div class="candidate-facts">
+          <div class="candidate-note"><span class="candidate-note-k">RS / 板塊</span><span class="candidate-note-v">${item.rsLabel || "跟大盤同步"} · ${item.sectorProxy || "--"} (${item.sectorRsLabel || "--"})</span></div>
+          <div class="candidate-note"><span class="candidate-note-k">波動 / Gap</span><span class="candidate-note-v">${item.marketVolatilityLabel || "正常波動"} · ${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}% (${item.gapLabel || "正常"})</span></div>
+          <div class="candidate-note"><span class="candidate-note-k">量能 / RR</span><span class="candidate-note-v">${mode === "short" ? (item.shortVolumeLabel || "普通") : (item.longVolumeLabel || "普通")} · RR ${item.rr1 ? item.rr1.toFixed(1) : "--"} (${item.rrLabel || "--"})</span></div>
+          <div class="candidate-note"><span class="candidate-note-k">日線</span><span class="candidate-note-v">${item.dailyStructure?.label || "未知"} · 區間 ${Math.round((item.dailyStructure?.rangePos20 ?? 0.5) * 100)}% · 延伸 ${Number(item.dailyStructure?.stretchAtr || 0).toFixed(1)} ATR</span></div>
+          <div class="candidate-note"><span class="candidate-note-k">入場 / TP 依據</span><span class="candidate-note-v">${item.entryBasis || "ATR"} · ${item.tpBasis || "ATR"}</span></div>
+          <div class="candidate-note"><span class="candidate-note-k">關鍵位階</span><span class="candidate-note-v">${mode === "short"
+            ? `${item.structure?.prevDayLow ? `昨低 ${formatPrice(item.structure.prevDayLow)}` : "昨低 --"} / ${item.structure?.orbLow ? `ORB ${formatPrice(item.structure.orbLow)}` : "ORB --"}`
+            : `${item.structure?.prevDayHigh ? `昨高 ${formatPrice(item.structure.prevDayHigh)}` : "昨高 --"} / ${item.structure?.orbHigh ? `ORB ${formatPrice(item.structure.orbHigh)}` : "ORB --"}`}</span></div>
+        </div>
         <div class="reason">原因：${reasonsText}。${item.sinceLastScanPct != null ? ` 上次掃描後 ${item.sinceLastScanPct >= 0 ? "+" : ""}${item.sinceLastScanPct.toFixed(1)}%。` : ""}${item.newsHeadline ? ` 新聞：${item.newsHeadline}` : ""}</div>
       `;
       const checkbox = article.querySelector(`[data-pick-symbol="${item.symbol}"]`);
