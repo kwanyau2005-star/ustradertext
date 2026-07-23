@@ -3,7 +3,7 @@ services:
     name: ustradertext
     runtime: python
     buildCommand: ""
-    startCommand: python3 rest_proxy_server.py --port $PORT
+    startCommand: python3 rest_proxy_server.py
     envVars:
       - key: MASSIVE_PROXY_KEY
         sync: false
