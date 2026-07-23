@@ -312,7 +312,7 @@
       padding:70px 16px 16px;
     }
     .menu-modal .modal-panel{
-      width:min(360px, calc(100vw - 24px));
+      width:min(1360px, calc(100vw - 24px));
       max-height:min(86vh, 900px);
     }
     .modal-panel{
@@ -338,6 +338,25 @@
     }
     .modal-grid{display:grid; gap:14px}
     .menu-section{display:grid; gap:10px}
+    .menu-modal .modal-grid{
+      grid-template-columns:1fr;
+    }
+    .menu-modal .menu-section-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      padding-bottom:4px;
+    }
+    .menu-modal .menu-section-row .nav-btn,
+    .menu-modal .menu-section-row .menu-btn{
+      min-width:220px;
+      flex:1 0 220px;
+    }
+    .menu-modal .settings-row .menu-btn{
+      min-width:240px;
+      flex:1 0 240px;
+    }
     .preset-grid{
       display:grid;
       grid-template-columns:repeat(2,1fr);
@@ -1264,6 +1283,15 @@
       .summary-grid{grid-template-columns:repeat(4,1fr)}
       .hero-summary{grid-template-columns:repeat(2,1fr); max-width:none; margin-left:0}
       .candidate-grid{grid-template-columns:repeat(2, minmax(0,1fr))}
+      .menu-modal .menu-section-row{
+        flex-wrap:wrap;
+        overflow:visible;
+      }
+      .menu-modal .menu-section-row .nav-btn,
+      .menu-modal .menu-section-row .menu-btn{
+        min-width:0;
+        flex:1 1 240px;
+      }
     }
     @media (max-width:760px){
       .app{width:min(100% - 16px, 1540px)}
