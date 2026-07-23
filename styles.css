@@ -1748,18 +1748,22 @@ a.link{
   z-index:auto;
   width:100%;
   max-width:none;
-  justify-content:space-between;
+  display:grid;
+  grid-template-columns:minmax(360px, 1fr) auto minmax(240px, 280px);
+  align-items:center;
+  justify-content:stretch;
   overflow:visible;
   white-space:normal;
   margin:0;
 }
 
 .hermes-header .top-directory{
-  flex:1 1 auto;
+  width:100%;
+  justify-content:flex-start;
 }
 
 .hermes-header .topbar-actions{
-  flex:0 0 auto;
+  justify-content:center;
 }
 
 .ghost-nav{
@@ -1794,18 +1798,27 @@ a.link{
 
 .hermes-page-grid{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 360px;
+  grid-template-columns:minmax(0, 1.5fr) minmax(340px, .95fr);
   gap:12px;
   align-items:start;
+}
+
+.hermes-primary-column{
+  min-width:0;
+  display:grid;
+  gap:10px;
 }
 
 .hermes-side-column{
   display:grid;
   gap:10px;
+  align-self:start;
+  position:sticky;
+  top:196px;
 }
 
 .hermes-kpi-grid{
-  grid-template-columns:1fr;
+  grid-template-columns:repeat(2, minmax(0,1fr));
   gap:10px;
 }
 
@@ -1828,11 +1841,19 @@ a.link{
   .hermes-page-grid{
     grid-template-columns:1fr;
   }
+  .hermes-side-column{
+    position:static;
+    top:auto;
+  }
   .hermes-kpi-grid{
     grid-template-columns:repeat(2, minmax(0,1fr));
   }
   .hermes-side-column .market-strip{
     grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+  .hermes-header .top-control-row{
+    display:flex;
+    justify-content:space-between;
   }
 }
 
