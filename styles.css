@@ -35,13 +35,19 @@
     .top-control-row{
       position:fixed;
       top:10px;
-      left:10px;
-      right:10px;
+      left:50%;
+      transform:translateX(-50%);
       z-index:48;
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      justify-content:center;
       gap:10px;
+      width:max-content;
+      max-width:calc(100vw - 20px);
+      padding:0 6px;
+      overflow-x:auto;
+      overflow-y:hidden;
+      white-space:nowrap;
     }
     .panel{
       background:linear-gradient(180deg, rgba(16,13,30,.96), rgba(9,10,18,.99));
@@ -60,12 +66,14 @@
       display:flex;
       gap:8px;
       align-items:flex-start;
+      flex:0 0 auto;
     }
     .topbar-meta{
       position:static;
       z-index:auto;
       display:flex;
       align-items:center;
+      flex:0 0 auto;
     }
     .top-directory{
       position:static;
@@ -79,6 +87,7 @@
       border:1px solid rgba(74,145,84,.32);
       background:linear-gradient(180deg, rgba(8,14,12,.95), rgba(7,11,10,.99));
       box-shadow:0 10px 22px rgba(0,0,0,.38), inset 0 0 0 1px rgba(97,180,103,.08);
+      flex:0 0 auto;
     }
     .dir-item{
       min-height:40px;
@@ -1415,15 +1424,16 @@
       .modal{padding:10px}
       .menu-modal{padding:62px 10px 10px}
       .top-control-row{
-        left:8px;
-        right:8px;
+        left:50%;
+        transform:translateX(-50%);
         gap:8px;
-        flex-wrap:wrap;
-        justify-content:flex-start;
+        flex-wrap:nowrap;
+        justify-content:center;
+        max-width:calc(100vw - 12px);
       }
       .topbar-actions{gap:8px}
       .topbar-meta{display:block}
-      .top-directory{justify-content:flex-start; overflow-x:auto;}
+      .top-directory{justify-content:flex-start; overflow-x:visible;}
       .dir-item{flex:0 0 auto;}
       .dir-panel{left:10px; right:10px; width:auto; transform:none; top:100px;}
       .dir-panel-grid{
