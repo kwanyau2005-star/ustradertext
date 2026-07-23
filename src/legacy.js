@@ -1097,12 +1097,13 @@
       const last = bars[bars.length - 1];
       if (!last) return { score:0, label:"未確認", signals:[] };
       const range = Math.max(1e-9, last.h - last.l);
-      const closeNearHigh = (last.c - last.l) / range >= 0.62;
-      const closeNearLow = (last.h - last.c) / range >= 0.62;
+      const closeNearHigh = (last.c - last.l) / range >= 0.68;
+      const closeNearLow = (last.h - last.c) / range >= 0.68;
+      const bodyRatio = Math.abs(last.c - last.o) / range;
       const bullishCandle = last.c > last.o;
       const bearishCandle = last.c < last.o;
       const longSignals = [
-        { ok: bullishCandle && closeNearHigh, label:"收近高位" },
+        { ok: bullishCandle && closeNearHigh && bodyRatio >= 0.38, label:"收近高位" },
         { ok: structure.sessionVWAP ? last.c >= structure.sessionVWAP * 0.998 : false, label:"站上 VWAP" },
         { ok: structure.anchoredVWAPLong ? last.c >= structure.anchoredVWAPLong * 0.998 : false, label:"站上 Anchored VWAP" },
         { ok: structure.recentResistance ? last.c >= structure.recentResistance * 0.995 : false, label:"守住前高" },
@@ -1111,7 +1112,7 @@
         { ok: structure.orbHigh ? last.c >= structure.orbHigh * 0.998 : false, label:"站穩 ORB 高位" }
       ];
       const shortSignals = [
-        { ok: bearishCandle && closeNearLow, label:"收近低位" },
+        { ok: bearishCandle && closeNearLow && bodyRatio >= 0.38, label:"收近低位" },
         { ok: structure.sessionVWAP ? last.c <= structure.sessionVWAP * 1.002 : false, label:"壓住 VWAP" },
         { ok: structure.anchoredVWAPShort ? last.c <= structure.anchoredVWAPShort * 1.002 : false, label:"壓住 Anchored VWAP" },
         { ok: structure.recentSupport ? last.c <= structure.recentSupport * 1.005 : false, label:"失守前低" },
@@ -1145,12 +1146,12 @@
       const avgVol = avg(bars.slice(-21, -1).map(bar => bar.v || 0)) || 0;
       const range = Math.max(1e-9, last.h - last.l);
       const volumeBurst = avgVol > 0 ? (last.v || 0) / avgVol : 1;
-      const closeNearHigh = (last.c - last.l) / range >= 0.62;
-      const closeNearLow = (last.h - last.c) / range >= 0.62;
-      const expansion = range >= avgRange * 0.9;
+      const closeNearHigh = (last.c - last.l) / range >= 0.68;
+      const closeNearLow = (last.h - last.c) / range >= 0.68;
+      const expansion = range >= avgRange * 1.0;
       const longSignals = [
         { ok: closeNearHigh, label:"收近高位" },
-        { ok: volumeBurst >= 1.15, label:"量能確認" },
+        { ok: volumeBurst >= 1.25, label:"量能確認" },
         { ok: expansion, label:"波幅擴張" },
         { ok: last.c >= prev.c && prev.c >= prev2.c * 0.995, label:"連續推進" },
         { ok: structure.recentResistance ? last.c >= structure.recentResistance * 0.997 : false, label:"守住突破位" },
@@ -1159,7 +1160,7 @@
       ];
       const shortSignals = [
         { ok: closeNearLow, label:"收近低位" },
-        { ok: volumeBurst >= 1.15, label:"量能確認" },
+        { ok: volumeBurst >= 1.25, label:"量能確認" },
         { ok: expansion, label:"波幅擴張" },
         { ok: last.c <= prev.c && prev.c <= prev2.c * 1.005, label:"連續轉弱" },
         { ok: structure.recentSupport ? last.c <= structure.recentSupport * 1.003 : false, label:"守住失守位" },
@@ -3263,6 +3264,14 @@
         score -= setup.marketVolatilityLabel === "高波動" ? 10 : 4;
         reasons.push(`波動${setup.marketVolatilityLabel}，Trigger 要 >= ${triggerFloor}`);
       }
+      if (triggerScore <= 1 && breakoutScore <= 1) {
+        score -= 12;
+        reasons.push("觸發與突破同時偏弱");
+      }
+      if (triggerScore <= 1 && volumeScore <= 1) {
+        score -= 8;
+        reasons.push("觸發與量能同時偏弱");
+      }
 
       // 距離入場 / VWAP：避免追價造成回撤
       let chaseBlocked = false;
@@ -3859,6 +3868,26 @@
       const longCandidates = [];
       const shortCandidates = [];
       const watchCandidates = [];
+      const setupQualified = (setup, direction) => {
+        const triggerScore = direction === "long" ? (setup.longTriggerScore || 0) : (setup.shortTriggerScore || 0);
+        const breakoutScore = direction === "long" ? (setup.longBreakoutQualityScore || 0) : (setup.shortBreakoutQualityScore || 0);
+        const volumeScore = direction === "long" ? (setup.longVolumeScore || 0) : (setup.shortVolumeScore || 0);
+        const rrFloor = Math.max(1.2, (setup.marketRrFloor || 1.4) - 0.1);
+        const triggerFloor = Math.max(2, setup.marketTriggerFloor || 2);
+        const hasRoom = (setup.structureRoomAtr == null) || setup.structureRoomAtr >= 0.7;
+        const trendAligned = direction === "long"
+          ? (setup.dailyTrend >= 0 && setup.h4Trend >= 0)
+          : (setup.dailyTrend <= 0 && setup.h4Trend <= 0);
+        return (
+          triggerScore >= triggerFloor &&
+          breakoutScore >= 2 &&
+          volumeScore >= 2 &&
+          (setup.rr1 || 0) >= rrFloor &&
+          hasRoom &&
+          trendAligned &&
+          !setup.chaseBlocked
+        );
+      };
 
       dataset.forEach(stock => {
         const longPack = longScore(stock, settings);
@@ -3866,11 +3895,13 @@
         const longSetup = annotateHistoryDelta(refineSetupQuality(buildSetup(stock, "long", longPack), "long"), previousMap);
         const shortSetup = annotateHistoryDelta(refineSetupQuality(buildSetup(stock, "short", shortPack), "short"), previousMap);
         const earningsSafe = !(settings.maxEarningsRisk > 0 && Number.isFinite(stock.earningsDays) && stock.earningsDays <= settings.maxEarningsRisk);
+        const longQualified = setupQualified(longSetup, "long");
+        const shortQualified = setupQualified(shortSetup, "short");
 
-        if ((settings.scannerBias === "both" || settings.scannerBias === "long") && earningsSafe && !longSetup.chaseBlocked && longSetup.score >= settings.minScore) {
+        if ((settings.scannerBias === "both" || settings.scannerBias === "long") && earningsSafe && longQualified && longSetup.score >= settings.minScore) {
           longCandidates.push(longSetup);
         }
-        if ((settings.scannerBias === "both" || settings.scannerBias === "short") && earningsSafe && !shortSetup.chaseBlocked && shortSetup.score >= settings.minScore) {
+        if ((settings.scannerBias === "both" || settings.scannerBias === "short") && earningsSafe && shortQualified && shortSetup.score >= settings.minScore) {
           shortCandidates.push(shortSetup);
         }
 
