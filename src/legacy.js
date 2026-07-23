@@ -2133,11 +2133,22 @@
       return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
     }
     // ★ v26 NEW: pattern markers helper — 攞 pattern-recognition 結果
+    const v26PatternScanCache = new WeakMap();
+    function v26GetPatternScan(bars){
+      try {
+        if (!window.v26Patterns || !Array.isArray(bars) || bars.length < 5) return { patterns: [], markers: [] };
+        const cached = v26PatternScanCache.get(bars);
+        if (cached) return cached;
+        const result = window.v26Patterns.scanPatterns(bars) || { patterns: [], markers: [] };
+        v26PatternScanCache.set(bars, result);
+        return result;
+      } catch (e) {
+        return { patterns: [], markers: [] };
+      }
+    }
     function v26GetPatternMarkers(bars){
       try {
-        if (!window.v26Patterns || !Array.isArray(bars) || bars.length < 5) return [];
-        const result = window.v26Patterns.scanPatterns(bars);
-        return result?.markers || [];
+        return v26GetPatternScan(bars)?.markers || [];
       } catch (e) {
         return [];
       }
@@ -2145,8 +2156,7 @@
     function v26GetPatternChips(bars){
       try {
         if (!window.v26Patterns || !Array.isArray(bars) || bars.length < 5) return [];
-        const result = window.v26Patterns.scanPatterns(bars);
-        return window.v26Patterns.patternsToChips?.(result?.patterns || []) || [];
+        return window.v26Patterns.patternsToChips?.(v26GetPatternScan(bars)?.patterns || []) || [];
       } catch (e) {
         return [];
       }
@@ -3316,6 +3326,9 @@
         { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
         { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
       ].filter(o => Number.isFinite(o.value));
+      const sparkBars = item.sparkBars || [];
+      const patternMarkers = v26GetPatternMarkers(sparkBars);
+      const patternChips = v26GetPatternChips(sparkBars);
       const article = document.createElement("article");
       article.className = `candidate ${modeClass}${selectedSymbols.has(item.symbol) ? " selected" : ""}`;
       article.dataset.symbol = item.symbol;
@@ -3365,10 +3378,10 @@
             </div>
           </div>
           <div class="candidate-chart-plot">
-            ${miniCandlesSVG(item.sparkBars || [], 560, 210, { overlays, theme: chartTheme, series: buildIndicatorSeries(item.sparkBars || []), markers: v26GetPatternMarkers(item.sparkBars || []) })}
+            ${miniCandlesSVG(sparkBars, 560, 210, { overlays, theme: chartTheme, series: buildIndicatorSeries(sparkBars), markers: patternMarkers })}
           </div>
           ${(() => {
-            const chips = v26GetPatternChips(item.sparkBars || []);
+            const chips = patternChips;
             if (!chips.length) return "";
             return `<div class="pattern-chip-row">${chips.slice(0,6).map(c => {
               const cls = c.kind === "bullish" ? "bull" : c.kind === "bearish" ? "bear" : "neutral";
@@ -3445,13 +3458,7 @@
         </div>
         <div class="reason">原因：${reasonsText}。${item.sinceLastScanPct != null ? ` 上次掃描後 ${item.sinceLastScanPct >= 0 ? "+" : ""}${item.sinceLastScanPct.toFixed(1)}%。` : ""}${item.newsHeadline ? ` 新聞：${item.newsHeadline}` : ""}</div>
       `;
-      const checkbox = article.querySelector(`[data-pick-symbol="${item.symbol}"]`);
-      checkbox?.addEventListener("change", (event) => {
-        const checked = event.target.checked;
-        toggleSelectedSymbol(item.symbol, checked);
-        article.classList.toggle("selected", checked);
-      });
-      container.appendChild(article);
+      return article;
     }
 
     function renderTimelineCard(container, item){
@@ -3500,6 +3507,19 @@
 
     function setEmpty(container, text){
       container.innerHTML = `<div class="empty">${text}</div>`;
+    }
+    function renderCandidateList(container, items, mode, emptyText){
+      container.innerHTML = "";
+      if (!items.length) {
+        setEmpty(container, emptyText);
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      items.forEach(item => {
+        const card = renderCandidate(container, item, mode);
+        if (card) fragment.appendChild(card);
+      });
+      container.appendChild(fragment);
     }
 
     function formatNewsDateKey(timestamp){
@@ -3845,15 +3865,9 @@
       latestScan = { long: longCandidates, short: shortCandidates, watch: watchCandidates };
       reconcileSelectedSymbols();
 
-      el.longGrid.innerHTML = "";
-      el.shortGrid.innerHTML = "";
-      el.watchGrid.innerHTML = "";
-      if (!longCandidates.length) setEmpty(el.longGrid, "目前冇夠分嘅做多 setup。");
-      else longCandidates.slice(0, 8).forEach(item => renderCandidate(el.longGrid, item, "long"));
-      if (!shortCandidates.length) setEmpty(el.shortGrid, "目前冇夠分嘅做空 setup。");
-      else shortCandidates.slice(0, 8).forEach(item => renderCandidate(el.shortGrid, item, "short"));
-      if (!watchCandidates.length) setEmpty(el.watchGrid, "觀察名單暫時清爽。");
-      else watchCandidates.slice(0, 10).forEach(item => renderCandidate(el.watchGrid, item, "watch"));
+      renderCandidateList(el.longGrid, longCandidates.slice(0, 8), "long", "目前冇夠分嘅做多 setup。");
+      renderCandidateList(el.shortGrid, shortCandidates.slice(0, 8), "short", "目前冇夠分嘅做空 setup。");
+      renderCandidateList(el.watchGrid, watchCandidates.slice(0, 10), "watch", "觀察名單暫時清爽。");
 
       const bestLong = longCandidates[0];
       const bestShort = shortCandidates[0];
@@ -4403,9 +4417,21 @@
       if (!symbol) return;
       showStockModal(symbol);
     };
+    const candidateToggleHandler = (event) => {
+      const input = event.target;
+      if (!input?.matches?.('input[data-pick-symbol]')) return;
+      const symbol = input.dataset.pickSymbol;
+      if (!symbol) return;
+      const card = input.closest?.("article.candidate");
+      toggleSelectedSymbol(symbol, !!input.checked);
+      card?.classList?.toggle("selected", !!input.checked);
+    };
     el.longGrid?.addEventListener("click", candidateClickHandler);
     el.shortGrid?.addEventListener("click", candidateClickHandler);
     el.watchGrid?.addEventListener("click", candidateClickHandler);
+    el.longGrid?.addEventListener("change", candidateToggleHandler);
+    el.shortGrid?.addEventListener("change", candidateToggleHandler);
+    el.watchGrid?.addEventListener("change", candidateToggleHandler);
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeSettingsModal();
