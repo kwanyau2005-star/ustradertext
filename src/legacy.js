@@ -3265,11 +3265,11 @@
         reasons.push(`波動${setup.marketVolatilityLabel}，Trigger 要 >= ${triggerFloor}`);
       }
       if (triggerScore <= 1 && breakoutScore <= 1) {
-        score -= 8;
+        score -= 4;
         reasons.push("觸發與突破同時偏弱");
       }
       if (triggerScore <= 1 && volumeScore <= 1) {
-        score -= 5;
+        score -= 3;
         reasons.push("觸發與量能同時偏弱");
       }
 
@@ -3872,22 +3872,22 @@
         const triggerScore = direction === "long" ? (setup.longTriggerScore || 0) : (setup.shortTriggerScore || 0);
         const breakoutScore = direction === "long" ? (setup.longBreakoutQualityScore || 0) : (setup.shortBreakoutQualityScore || 0);
         const volumeScore = direction === "long" ? (setup.longVolumeScore || 0) : (setup.shortVolumeScore || 0);
-        const rrFloor = Math.max(1.1, (setup.marketRrFloor || 1.4) - 0.25);
-        const triggerFloor = Math.max(1, (setup.marketTriggerFloor || 2) - 1);
-        const hasRoom = (setup.structureRoomAtr == null) || setup.structureRoomAtr >= 0.55;
+        const rrFloor = Math.max(1.0, (setup.marketRrFloor || 1.4) - 0.4);
+        const triggerFloor = 1;
+        const hasRoom = (setup.structureRoomAtr == null) || setup.structureRoomAtr >= 0.35;
         const trendAligned = direction === "long"
           ? (setup.dailyTrend >= 0 && setup.h4Trend >= 0)
           : (setup.dailyTrend <= 0 && setup.h4Trend <= 0);
         const qualityPassCount = [
           triggerScore >= triggerFloor,
-          breakoutScore >= 2,
-          volumeScore >= 2
+          breakoutScore >= 1,
+          volumeScore >= 1
         ].filter(Boolean).length;
         return (
-          qualityPassCount >= 2 &&
+          qualityPassCount >= 1 &&
           (setup.rr1 || 0) >= rrFloor &&
           hasRoom &&
-          (trendAligned || setup.score >= Math.max(74, settings.minScore + 4)) &&
+          (trendAligned || setup.score >= Math.max(70, settings.minScore + 2)) &&
           !setup.chaseBlocked
         );
       };
@@ -3901,10 +3901,10 @@
         const longQualified = setupQualified(longSetup, "long");
         const shortQualified = setupQualified(shortSetup, "short");
 
-        if ((settings.scannerBias === "both" || settings.scannerBias === "long") && earningsSafe && longQualified && longSetup.score >= settings.minScore) {
+        if ((settings.scannerBias === "both" || settings.scannerBias === "long") && earningsSafe && longQualified && longSetup.score >= settings.minScore - 4) {
           longCandidates.push(longSetup);
         }
-        if ((settings.scannerBias === "both" || settings.scannerBias === "short") && earningsSafe && shortQualified && shortSetup.score >= settings.minScore) {
+        if ((settings.scannerBias === "both" || settings.scannerBias === "short") && earningsSafe && shortQualified && shortSetup.score >= settings.minScore - 4) {
           shortCandidates.push(shortSetup);
         }
 
