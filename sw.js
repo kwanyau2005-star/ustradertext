@@ -1,5 +1,5 @@
 // 每次發佈如果 HTML/CSS/JS 有改動，請記得更新版本號，避免用戶一直食舊 cache。
-const CACHE_NAME = "ustradertext-shell-v26";
+const CACHE_NAME = "ustradertext-shell-v27";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -36,6 +36,7 @@ self.addEventListener("fetch", (event) => {
 
   const accept = event.request.headers.get("accept") || "";
   const isHtmlNav = event.request.mode === "navigate" || accept.includes("text/html");
+  const isCoreAsset = url.pathname === "/styles.css" || url.pathname.startsWith("/src/");
 
   // HTML 用 network-first：確保發佈後用戶可以即刻見到新版本
   if (isHtmlNav) {
@@ -47,6 +48,20 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => caches.match("/us-trading-dashboard.html"))
+    );
+    return;
+  }
+
+  // 核心資源（CSS / JS）用 network-first，避免新部署後仍食舊版本。
+  if (isCoreAsset) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
+          return response;
+        })
+        .catch(() => caches.match(event.request))
     );
     return;
   }
