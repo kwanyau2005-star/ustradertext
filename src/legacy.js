@@ -1095,6 +1095,7 @@
     }
     function calcEntryTriggers(bars, structure={}, direction="long"){
       const last = bars[bars.length - 1];
+      const prev = bars[bars.length - 2];
       if (!last) return { score:0, label:"未確認", signals:[] };
       const range = Math.max(1e-9, last.h - last.l);
       const closeNearHigh = (last.c - last.l) / range >= 0.65;
@@ -1102,23 +1103,39 @@
       const bodyRatio = Math.abs(last.c - last.o) / range;
       const bullishCandle = last.c > last.o;
       const bearishCandle = last.c < last.o;
+      const longRetestResistance = structure.recentResistance
+        ? (last.l <= structure.recentResistance * 1.012 && last.c >= structure.recentResistance * 0.998)
+        : false;
+      const shortRetestSupport = structure.recentSupport
+        ? (last.h >= structure.recentSupport * 0.988 && last.c <= structure.recentSupport * 1.002)
+        : false;
+      const longRetestVwap = structure.sessionVWAP
+        ? (last.l <= structure.sessionVWAP * 1.006 && last.c >= structure.sessionVWAP * 0.999)
+        : false;
+      const shortRetestVwap = structure.sessionVWAP
+        ? (last.h >= structure.sessionVWAP * 0.994 && last.c <= structure.sessionVWAP * 1.001)
+        : false;
+      const longHigherLow = !!(prev && last.l >= prev.l * 0.998 && last.c >= prev.c * 0.998);
+      const shortLowerHigh = !!(prev && last.h <= prev.h * 1.002 && last.c <= prev.c * 1.002);
       const longSignals = [
         { ok: bullishCandle && closeNearHigh && bodyRatio >= 0.32, label:"收近高位" },
-        { ok: structure.sessionVWAP ? last.c >= structure.sessionVWAP * 0.998 : false, label:"站上 VWAP" },
-        { ok: structure.anchoredVWAPLong ? last.c >= structure.anchoredVWAPLong * 0.998 : false, label:"站上 Anchored VWAP" },
-        { ok: structure.recentResistance ? last.c >= structure.recentResistance * 0.995 : false, label:"守住前高" },
+        { ok: longRetestVwap, label:"回踩 VWAP 後收回" },
+        { ok: structure.anchoredVWAPLong ? (last.l <= structure.anchoredVWAPLong * 1.006 && last.c >= structure.anchoredVWAPLong * 0.999) : false, label:"回踩 Anchored VWAP 確認" },
+        { ok: longRetestResistance, label:"回踩前高確認" },
         { ok: structure.demandHigh ? last.l <= structure.demandHigh * 1.01 && last.c >= structure.demandHigh * 0.998 : false, label:"Demand 承接" },
-        { ok: structure.prevDayHigh ? last.c >= structure.prevDayHigh * 0.998 : false, label:"站穩昨高" },
-        { ok: structure.orbHigh ? last.c >= structure.orbHigh * 0.998 : false, label:"站穩 ORB 高位" }
+        { ok: structure.prevDayHigh ? (last.l <= structure.prevDayHigh * 1.01 && last.c >= structure.prevDayHigh * 0.999) : false, label:"回踩昨高確認" },
+        { ok: structure.orbHigh ? (last.l <= structure.orbHigh * 1.01 && last.c >= structure.orbHigh * 0.999) : false, label:"回踩 ORB 高位確認" },
+        { ok: longHigherLow, label:"回踩後抬高低點" }
       ];
       const shortSignals = [
         { ok: bearishCandle && closeNearLow && bodyRatio >= 0.32, label:"收近低位" },
-        { ok: structure.sessionVWAP ? last.c <= structure.sessionVWAP * 1.002 : false, label:"壓住 VWAP" },
-        { ok: structure.anchoredVWAPShort ? last.c <= structure.anchoredVWAPShort * 1.002 : false, label:"壓住 Anchored VWAP" },
-        { ok: structure.recentSupport ? last.c <= structure.recentSupport * 1.005 : false, label:"失守前低" },
+        { ok: shortRetestVwap, label:"反抽 VWAP 後壓回" },
+        { ok: structure.anchoredVWAPShort ? (last.h >= structure.anchoredVWAPShort * 0.994 && last.c <= structure.anchoredVWAPShort * 1.001) : false, label:"反抽 Anchored VWAP 確認" },
+        { ok: shortRetestSupport, label:"反抽前低確認" },
         { ok: structure.supplyLow ? last.h >= structure.supplyLow * 0.99 && last.c <= structure.supplyLow * 1.002 : false, label:"Supply 受壓" },
-        { ok: structure.prevDayLow ? last.c <= structure.prevDayLow * 1.002 : false, label:"失守昨低" },
-        { ok: structure.orbLow ? last.c <= structure.orbLow * 1.002 : false, label:"失守 ORB 低位" }
+        { ok: structure.prevDayLow ? (last.h >= structure.prevDayLow * 0.99 && last.c <= structure.prevDayLow * 1.001) : false, label:"反抽昨低確認" },
+        { ok: structure.orbLow ? (last.h >= structure.orbLow * 0.99 && last.c <= structure.orbLow * 1.001) : false, label:"反抽 ORB 低位確認" },
+        { ok: shortLowerHigh, label:"反抽後降低高點" }
       ];
       const pool = direction === "long" ? longSignals : shortSignals;
       const hits = pool.filter(item => item.ok);
@@ -1298,9 +1315,12 @@
       const vwap = setup.structure?.sessionVWAP;
       const atrDollar = setup.price * ((setup.atrPct || 0) / 100);
       const vwapDistAtr = (Number.isFinite(vwap) && atrDollar > 0) ? (Math.abs(setup.price - vwap) / atrDollar) : 0;
-      const hasVwapSignal = triggerSignals.includes(direction === "long" ? "站上 VWAP" : "壓住 VWAP");
+      const hasVwapSignal = triggerSignals.some(signal => /VWAP/.test(signal));
       const hasZoneSignal = triggerSignals.includes(direction === "long" ? "Demand 承接" : "Supply 受壓");
-      const hasBreakoutHold = breakoutSignals.includes(direction === "long" ? "守住突破位" : "守住失守位") || triggerSignals.includes(direction === "long" ? "守住前高" : "失守前低");
+      const hasBreakoutHold = breakoutSignals.includes(direction === "long" ? "守住突破位" : "守住失守位")
+        || triggerSignals.some(signal => direction === "long"
+          ? /回踩前高確認|回踩昨高確認|回踩 ORB 高位確認/.test(signal)
+          : /反抽前低確認|反抽昨低確認|反抽 ORB 低位確認/.test(signal));
       const meanReversionBias = vwapDistAtr >= 0.9 && hasVwapSignal;
       const continuationBreakout = trendOk && breakoutScore >= 3 && hasBreakoutHold;
       const continuationPullback = trendOk && triggerScore >= 2 && (hasZoneSignal || hasVwapSignal);
@@ -3080,14 +3100,16 @@
       let entry, stop, tp1, tp2, summary, entryBasis, stopBasis, tpBasis;
       if (direction === "long") {
         const entryCandidates = uniqueTargets([
-          structure.recentResistance ? { value:structure.recentResistance, label:"前高回踩" } : null,
           structure.demandHigh ? { value:structure.demandHigh, label:"Demand zone" } : null,
-          structure.volumeNode ? { value:structure.volumeNode, label:"成交量密集區" } : null,
           structure.sessionVWAP ? { value:structure.sessionVWAP, label:"VWAP" } : null,
-          structure.anchoredVWAPLong ? { value:structure.anchoredVWAPLong, label:"Anchored VWAP" } : null
-        ].filter(item => item && item.value <= stock.price * 1.02), "desc");
+          structure.anchoredVWAPLong ? { value:structure.anchoredVWAPLong, label:"Anchored VWAP" } : null,
+          structure.recentResistance ? { value:structure.recentResistance, label:"前高回踩" } : null,
+          structure.prevDayHigh ? { value:structure.prevDayHigh, label:"昨高回踩" } : null,
+          structure.orbHigh ? { value:structure.orbHigh, label:"ORB 回踩" } : null,
+          structure.volumeNode ? { value:structure.volumeNode, label:"成交量密集區" } : null
+        ].filter(item => item && item.value <= stock.price * 1.01), "desc");
         entry = entryCandidates[0]?.value || stock.price * (1 - Math.min(stock.distBreakout, 3) / 100 * 0.55);
-        entryBasis = entryCandidates[0]?.label || "ATR 回踩模型";
+        entryBasis = entryCandidates[0]?.label || "回踩確認模型";
         const structuralStop = Math.min(
           structure.demandLow || entry - atrDollar,
           structure.recentSupport || entry - atrDollar,
@@ -3106,17 +3128,19 @@
         tp1 = longTargets[0]?.value || (entry + atrDollar * 1.4);
         tp2 = longTargets.find(item => item.value > tp1 + atrDollar * 0.25)?.value || Math.max(entry + atrDollar * 2.3, structure.fib161Long || 0);
         tpBasis = [longTargets[0]?.label, longTargets.find(item => item.value > tp1 + atrDollar * 0.25)?.label].filter(Boolean).join(" / ") || "ATR + Fib";
-        summary = `${stock.symbol} 偏向等結構位承接後再上，優先睇前高回踩、VWAP 同 demand zone 支撐。`;
+        summary = `${stock.symbol} 以回踩確認為先，等關鍵支持位承接後再入場，避免追突破。`;
       } else {
         const entryCandidates = uniqueTargets([
-          structure.recentSupport ? { value:structure.recentSupport, label:"前低反抽" } : null,
           structure.supplyLow ? { value:structure.supplyLow, label:"Supply zone" } : null,
-          structure.volumeNode ? { value:structure.volumeNode, label:"成交量密集區" } : null,
           structure.sessionVWAP ? { value:structure.sessionVWAP, label:"VWAP" } : null,
-          structure.anchoredVWAPShort ? { value:structure.anchoredVWAPShort, label:"Anchored VWAP" } : null
-        ].filter(item => item && item.value >= stock.price * 0.98), "asc");
+          structure.anchoredVWAPShort ? { value:structure.anchoredVWAPShort, label:"Anchored VWAP" } : null,
+          structure.recentSupport ? { value:structure.recentSupport, label:"前低反抽" } : null,
+          structure.prevDayLow ? { value:structure.prevDayLow, label:"昨低反抽" } : null,
+          structure.orbLow ? { value:structure.orbLow, label:"ORB 反抽" } : null,
+          structure.volumeNode ? { value:structure.volumeNode, label:"成交量密集區" } : null
+        ].filter(item => item && item.value >= stock.price * 0.99), "asc");
         entry = entryCandidates[0]?.value || stock.price * (1 + Math.min(stock.distBreakdown, 3) / 100 * 0.45);
-        entryBasis = entryCandidates[0]?.label || "ATR 反抽模型";
+        entryBasis = entryCandidates[0]?.label || "反抽確認模型";
         const structuralStop = Math.max(
           structure.supplyHigh || entry + atrDollar,
           structure.recentResistance || entry + atrDollar,
@@ -3135,7 +3159,7 @@
         tp1 = shortTargets[0]?.value || (entry - atrDollar * 1.4);
         tp2 = shortTargets.find(item => item.value < tp1 - atrDollar * 0.25)?.value || Math.min(entry - atrDollar * 2.3, structure.fib161Short || entry - atrDollar * 2.3);
         tpBasis = [shortTargets[0]?.label, shortTargets.find(item => item.value < tp1 - atrDollar * 0.25)?.label].filter(Boolean).join(" / ") || "ATR + Fib";
-        summary = `${stock.symbol} 偏向等結構位受壓後再落，優先睇前低失守反抽、VWAP 同 supply zone 壓力。`;
+        summary = `${stock.symbol} 以反抽確認為先，等關鍵壓力位受壓後再入場，避免低位硬追。`;
       }
       return {
         ...stock,
@@ -3263,6 +3287,17 @@
       if (triggerScore < triggerFloor) {
         score -= setup.marketVolatilityLabel === "高波動" ? 10 : 4;
         reasons.push(`波動${setup.marketVolatilityLabel}，Trigger 要 >= ${triggerFloor}`);
+      }
+      const triggerSignals = direction === "long" ? (setup.longTriggerSignals || []) : (setup.shortTriggerSignals || []);
+      const pullbackConfirmed = triggerSignals.some(signal =>
+        /回踩|反抽|承接|受壓|抬高低點|降低高點/.test(signal)
+      );
+      if (pullbackConfirmed) {
+        score += 4;
+        reasons.push("回踩/反抽確認完成");
+      } else if (triggerScore >= 2) {
+        score -= 3;
+        reasons.push("未見明確回踩確認");
       }
       if (triggerScore <= 1 && breakoutScore <= 1) {
         score -= 4;
