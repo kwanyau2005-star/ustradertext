@@ -61,11 +61,11 @@ export function drawRoundRect(ctx, x, y, w, h, r) {
  */
 export function drawMiniCandlesCanvas(ctx, bars, x, y, w, h, opts = {}) {
   const theme = opts.theme || {};
-  const upColor = theme.upColor || "#22c55e";
-  const downColor = theme.downColor || "#ef4444";
-  const axisColor = theme.axisColor || "rgba(226,232,240,.78)";
-  const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
-  const midColor = theme.midColor || "rgba(255,255,255,.06)";
+  const upColor = theme.upColor || "#39ff14";
+  const downColor = theme.downColor || "#ff6b6b";
+  const axisColor = theme.axisColor || "rgba(220,255,218,.82)";
+  const gridColor = theme.gridColor || "rgba(57,255,20,.20)";
+  const midColor = theme.midColor || "rgba(57,255,20,.14)";
   const series = Array.isArray(opts.series) ? opts.series : [];
 
   // Background panel
@@ -78,7 +78,7 @@ export function drawMiniCandlesCanvas(ctx, bars, x, y, w, h, opts = {}) {
 
   if (!Array.isArray(bars) || bars.length < 2) return;
 
-  const chartPad = { top: 10, right: 64, bottom: 20, left: 40 };
+  const chartPad = { top: 10, right: 76, bottom: 22, left: 46 };
   const rawMinL = Math.min(...bars.map(b => b.l));
   const rawMaxH = Math.max(...bars.map(b => b.h));
   const rawRange = Math.max(1e-9, rawMaxH - rawMinL);
