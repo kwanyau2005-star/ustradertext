@@ -689,8 +689,8 @@
       border-radius:16px;
       border:1px solid rgba(255,255,255,.08);
       background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.012));
-      padding:10px 10px 12px;
-      min-height:220px;
+      padding:12px 12px 14px;
+      min-height:286px;
       height:auto;
     }
     .chart-head{
@@ -701,17 +701,17 @@
       margin-bottom:8px;
     }
     .chart-title{
-      font-size:14px;
+      font-size:15px;
       font-weight:900;
-      color:#eef2ff;
-      letter-spacing:.10em;
+      color:#d8ffd2;
+      letter-spacing:.12em;
       text-transform:uppercase;
     }
     .chart-subtitle{
-      font-size:10px;
+      font-size:11px;
       color:var(--muted);
       margin-top:2px;
-      letter-spacing:.03em;
+      letter-spacing:.04em;
     }
     .chart-readout{
       display:flex;
@@ -720,9 +720,9 @@
       justify-content:flex-end;
     }
     .chart-pill{
-      padding:5px 8px;
+      padding:6px 9px;
       border-radius:999px;
-      font-size:10px;
+      font-size:11px;
       font-weight:900;
       border:1px solid rgba(255,255,255,.07);
       background:rgba(255,255,255,.03);
@@ -742,7 +742,7 @@
       box-shadow:inset 0 0 0 1px rgba(139,92,246,.08);
     }
     .candidate-chart-plot{
-      height:156px;
+      height:210px;
     }
     .candidate-chart svg{
       display:block;

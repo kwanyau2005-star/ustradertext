@@ -23,11 +23,11 @@ export function miniCandlesSVG(bars, width = 240, height = 46, opts = {}) {
     return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg"></svg>`;
   }
   const theme = opts.theme || {};
-  const axisColor = theme.axisColor || "rgba(255,255,255,.68)";
-  const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
-  const bgLineColor = theme.midColor || "rgba(255,255,255,.06)";
+  const axisColor = theme.axisColor || "rgba(220,255,218,.82)";
+  const gridColor = theme.gridColor || "rgba(57,255,20,.20)";
+  const bgLineColor = theme.midColor || "rgba(57,255,20,.14)";
   const series = Array.isArray(opts?.series) ? opts.series : [];
-  const chartPad = { top: 8, right: 64, bottom: 18, left: 40 };
+  const chartPad = { top: 10, right: 76, bottom: 22, left: 46 };
   const plotW = Math.max(10, width - chartPad.left - chartPad.right);
   const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
   const rawMinL = Math.min(...bars.map(b => b.l));
@@ -48,14 +48,14 @@ export function miniCandlesSVG(bars, width = 240, height = 46, opts = {}) {
   const yMid = Math.round(chartPad.top + plotH / 2);
 
   // Horizontal grid
-  parts.push(`<line x1="${xLeft}" y1="${yTopGrid}" x2="${xRight}" y2="${yTopGrid}" stroke="${gridColor}" stroke-width="1" />`);
-  parts.push(`<line x1="${xLeft}" y1="${yMid}" x2="${xRight}" y2="${yMid}" stroke="${bgLineColor}" stroke-width="1" />`);
-  parts.push(`<line x1="${xLeft}" y1="${yBottomGrid}" x2="${xRight}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1" />`);
+  parts.push(`<line x1="${xLeft}" y1="${yTopGrid}" x2="${xRight}" y2="${yTopGrid}" stroke="${gridColor}" stroke-width="1.2" opacity="0.9" />`);
+  parts.push(`<line x1="${xLeft}" y1="${yMid}" x2="${xRight}" y2="${yMid}" stroke="${bgLineColor}" stroke-width="1.2" opacity="0.95" />`);
+  parts.push(`<line x1="${xLeft}" y1="${yBottomGrid}" x2="${xRight}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1.2" opacity="0.9" />`);
 
   // Vertical grid (5-bar spacing)
   for (let i = 0; i < bars.length; i += 5) {
     const gx = Math.round(chartPad.left + i * step + step / 2);
-    parts.push(`<line x1="${gx}" y1="${yTopGrid}" x2="${gx}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 6" opacity="0.65" />`);
+    parts.push(`<line x1="${gx}" y1="${yTopGrid}" x2="${gx}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1.1" stroke-dasharray="3 5" opacity="0.82" />`);
   }
 
   // Candlesticks
@@ -103,16 +103,16 @@ export function miniCandlesSVG(bars, width = 240, height = 46, opts = {}) {
       const y = clamp(scaleY(o.value), chartPad.top, chartPad.top + plotH);
       const stroke = o.color || "rgba(255,255,255,.45)";
       const dash = o.dash ? ' stroke-dasharray="4 3"' : "";
-      parts.push(`<line x1="${xLeft}" y1="${y}" x2="${xRight}" y2="${y}" stroke="${stroke}" stroke-width="1.2"${dash} opacity="0.95" />`);
+      parts.push(`<line x1="${xLeft}" y1="${y}" x2="${xRight}" y2="${y}" stroke="${stroke}" stroke-width="1.5"${dash} opacity="0.98" />`);
       const label = String(o.label || "").trim();
       if (label && !labelYs.some(prevY => Math.abs(prevY - y) < 14)) {
         labelYs.push(y);
         const text = escapeHtml(label);
-        const boxW = Math.max(20, Math.min(46, label.length * 6.2 + 12));
+        const boxW = Math.max(26, Math.min(66, label.length * 7 + 14));
         const rx = 4;
-        const ry = clamp(y - 8, 2, height - 18);
-        parts.push(`<rect x="${rx}" y="${ry}" width="${boxW}" height="16" rx="7" ry="7" fill="rgba(8,10,18,.88)" stroke="rgba(255,255,255,.10)" />`);
-        parts.push(`<text x="${rx + boxW / 2}" y="${ry + 11}" fill="${stroke}" font-size="10" font-weight="900" text-anchor="middle">${text}</text>`);
+        const ry = clamp(y - 9, 2, height - 20);
+        parts.push(`<rect x="${rx}" y="${ry}" width="${boxW}" height="18" rx="8" ry="8" fill="rgba(6,14,9,.92)" stroke="rgba(57,255,20,.24)" />`);
+        parts.push(`<text x="${rx + boxW / 2}" y="${ry + 12.5}" fill="${stroke}" font-size="11" font-weight="900" text-anchor="middle">${text}</text>`);
       }
     });
 
@@ -138,8 +138,8 @@ export function miniCandlesSVG(bars, width = 240, height = 46, opts = {}) {
       return [px, py];
     });
     const d = points.map((p, idx) => `${idx === 0 ? "M" : "L"}${p[0]} ${p[1]}`).join(" ");
-    const stroke = key === "line-up" ? "#22c55e" : key === "line-down" ? "#ef4444" : "rgba(255,255,255,.7)";
-    parts.push(`<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6" stroke-dasharray="3 3" opacity="0.9" />`);
+    const stroke = key === "line-up" ? "#39ff14" : key === "line-down" ? "#ff6b6b" : "rgba(220,255,218,.82)";
+    parts.push(`<path d="${d}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-dasharray="4 3" opacity="0.95" />`);
   });
   // Draw point markers
   markers.forEach(m => {
@@ -147,24 +147,24 @@ export function miniCandlesSVG(bars, width = 240, height = 46, opts = {}) {
     if (typeof m.kind === "string" && m.kind.startsWith("line-")) return;
     const b = bars[m.index];
     const px = Math.round(chartPad.left + m.index * step + step / 2);
-    let color = m.color || "rgba(192,132,252,.95)";
-    if (m.kind === "bullish" || m.kind === "dot-up") color = m.color || "#22c55e";
-    else if (m.kind === "bearish" || m.kind === "dot-down") color = m.color || "#ef4444";
-    else if (m.kind === "neutral") color = m.color || "rgba(192,132,252,.95)";
+    let color = m.color || "rgba(57,255,20,.95)";
+    if (m.kind === "bullish" || m.kind === "dot-up") color = m.color || "#39ff14";
+    else if (m.kind === "bearish" || m.kind === "dot-down") color = m.color || "#ff6b6b";
+    else if (m.kind === "neutral") color = m.color || "rgba(57,255,20,.95)";
     const py = clamp(scaleY(b.h), chartPad.top, chartPad.top + plotH);
-    const r = 3.2;
-    parts.push(`<circle cx="${px}" cy="${py - 6}" r="${r}" fill="${color}" stroke="rgba(8,10,18,.85)" stroke-width="1" />`);
+    const r = 4.2;
+    parts.push(`<circle cx="${px}" cy="${py - 7}" r="${r}" fill="${color}" stroke="rgba(6,12,9,.92)" stroke-width="1.2" />`);
     if (m.label) {
       const text = escapeHtml(String(m.label).slice(0, 6));
-      parts.push(`<text x="${px}" y="${py - 6 - r - 2}" fill="${color}" font-size="8" font-weight="900" text-anchor="middle">${text}</text>`);
+      parts.push(`<text x="${px}" y="${py - 7 - r - 3}" fill="${color}" font-size="9.5" font-weight="900" text-anchor="middle">${text}</text>`);
     }
   });
 
   // Y-axis price labels
   const priceText = (v) => escapeHtml(formatPrice(v));
-  parts.push(`<text x="${xRight + 6}" y="${chartPad.top + 8}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMaxH)}</text>`);
-  parts.push(`<text x="${xRight + 6}" y="${yMid + 4}" fill="${axisColor}" font-size="10" font-weight="700">${priceText((rawMaxH + rawMinL) / 2)}</text>`);
-  parts.push(`<text x="${xRight + 6}" y="${chartPad.top + plotH}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMinL)}</text>`);
+  parts.push(`<text x="${xRight + 8}" y="${chartPad.top + 9}" fill="${axisColor}" font-size="11" font-weight="800">${priceText(rawMaxH)}</text>`);
+  parts.push(`<text x="${xRight + 8}" y="${yMid + 4}" fill="${axisColor}" font-size="11" font-weight="800">${priceText((rawMaxH + rawMinL) / 2)}</text>`);
+  parts.push(`<text x="${xRight + 8}" y="${chartPad.top + plotH}" fill="${axisColor}" font-size="11" font-weight="800">${priceText(rawMinL)}</text>`);
 
   // X-axis date ticks
   const formatTick = (bar) => {
@@ -176,9 +176,9 @@ export function miniCandlesSVG(bars, width = 240, height = 46, opts = {}) {
   const firstTick = formatTick(bars[0]);
   const midTick = formatTick(bars[Math.floor(bars.length / 2)]);
   const lastTick = formatTick(bars[bars.length - 1]);
-  if (firstTick) parts.push(`<text x="${xLeft}" y="${height - 4}" fill="${axisColor}" font-size="10" font-weight="700">${escapeHtml(firstTick)}</text>`);
-  if (midTick) parts.push(`<text x="${chartPad.left + plotW / 2}" y="${height - 4}" fill="${axisColor}" font-size="10" font-weight="700" text-anchor="middle">${escapeHtml(midTick)}</text>`);
-  if (lastTick) parts.push(`<text x="${xRight}" y="${height - 4}" fill="${axisColor}" font-size="10" font-weight="700" text-anchor="end">${escapeHtml(lastTick)}</text>`);
+  if (firstTick) parts.push(`<text x="${xLeft}" y="${height - 5}" fill="${axisColor}" font-size="11" font-weight="800">${escapeHtml(firstTick)}</text>`);
+  if (midTick) parts.push(`<text x="${chartPad.left + plotW / 2}" y="${height - 5}" fill="${axisColor}" font-size="11" font-weight="800" text-anchor="middle">${escapeHtml(midTick)}</text>`);
+  if (lastTick) parts.push(`<text x="${xRight}" y="${height - 5}" fill="${axisColor}" font-size="11" font-weight="800" text-anchor="end">${escapeHtml(lastTick)}</text>`);
 
   return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${parts.join("")}</svg>`;
 }

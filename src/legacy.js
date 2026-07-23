@@ -1990,11 +1990,11 @@
         return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg"></svg>`;
       }
       const theme = opts.theme || {};
-      const axisColor = theme.axisColor || "rgba(255,255,255,.68)";
-      const gridColor = theme.gridColor || "rgba(255,255,255,.08)";
-      const bgLineColor = theme.midColor || "rgba(255,255,255,.06)";
+      const axisColor = theme.axisColor || "rgba(220,255,218,.82)";
+      const gridColor = theme.gridColor || "rgba(57,255,20,.20)";
+      const bgLineColor = theme.midColor || "rgba(57,255,20,.14)";
       const series = Array.isArray(opts?.series) ? opts.series : [];
-      const chartPad = { top: 8, right: 64, bottom: 18, left: 40 };
+      const chartPad = { top: 10, right: 76, bottom: 22, left: 46 };
       const plotW = Math.max(10, width - chartPad.left - chartPad.right);
       const plotH = Math.max(10, height - chartPad.top - chartPad.bottom);
       const rawMinL = Math.min(...bars.map(b => b.l));
@@ -2013,13 +2013,13 @@
       const yTopGrid = chartPad.top;
       const yBottomGrid = chartPad.top + plotH;
       const yMid = Math.round(chartPad.top + plotH/2);
-      parts.push(`<line x1="${xLeft}" y1="${yTopGrid}" x2="${xRight}" y2="${yTopGrid}" stroke="${gridColor}" stroke-width="1" />`);
-      parts.push(`<line x1="${xLeft}" y1="${yMid}" x2="${xRight}" y2="${yMid}" stroke="${bgLineColor}" stroke-width="1" />`);
-      parts.push(`<line x1="${xLeft}" y1="${yBottomGrid}" x2="${xRight}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1" />`);
+      parts.push(`<line x1="${xLeft}" y1="${yTopGrid}" x2="${xRight}" y2="${yTopGrid}" stroke="${gridColor}" stroke-width="1.2" opacity="0.9" />`);
+      parts.push(`<line x1="${xLeft}" y1="${yMid}" x2="${xRight}" y2="${yMid}" stroke="${bgLineColor}" stroke-width="1.2" opacity="0.95" />`);
+      parts.push(`<line x1="${xLeft}" y1="${yBottomGrid}" x2="${xRight}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1.2" opacity="0.9" />`);
       // Vertical grid (像你張圖嗰種)
       for (let i = 0; i < bars.length; i += 5){
         const gx = Math.round(chartPad.left + i * step + step / 2);
-        parts.push(`<line x1="${gx}" y1="${yTopGrid}" x2="${gx}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4 6" opacity="0.65" />`);
+        parts.push(`<line x1="${gx}" y1="${yTopGrid}" x2="${gx}" y2="${yBottomGrid}" stroke="${gridColor}" stroke-width="1.1" stroke-dasharray="3 5" opacity="0.82" />`);
       }
       for (let i = 0; i < bars.length; i++){
         const b = bars[i];
@@ -2061,22 +2061,22 @@
           const y = clamp(scaleY(o.value), chartPad.top, chartPad.top + plotH);
           const stroke = o.color || "rgba(255,255,255,.45)";
           const dash = o.dash ? ' stroke-dasharray="4 3"' : "";
-          parts.push(`<line x1="${xLeft}" y1="${y}" x2="${xRight}" y2="${y}" stroke="${stroke}" stroke-width="1.2"${dash} opacity="0.95" />`);
+          parts.push(`<line x1="${xLeft}" y1="${y}" x2="${xRight}" y2="${y}" stroke="${stroke}" stroke-width="1.5"${dash} opacity="0.98" />`);
           const label = String(o.label || "").trim();
           if (label && !labelYs.some(prevY => Math.abs(prevY - y) < 14)) {
             labelYs.push(y);
             const text = escapeHtml(label);
-            const boxW = Math.max(20, Math.min(46, label.length * 6.2 + 12));
+            const boxW = Math.max(26, Math.min(66, label.length * 7 + 14));
             const rx = 4;
-            const ry = clamp(y - 8, 2, height - 18);
-            parts.push(`<rect x="${rx}" y="${ry}" width="${boxW}" height="16" rx="7" ry="7" fill="rgba(8,10,18,.88)" stroke="rgba(255,255,255,.10)" />`);
-            parts.push(`<text x="${rx + boxW/2}" y="${ry + 11}" fill="${stroke}" font-size="10" font-weight="900" text-anchor="middle">${text}</text>`);
+            const ry = clamp(y - 9, 2, height - 20);
+            parts.push(`<rect x="${rx}" y="${ry}" width="${boxW}" height="18" rx="8" ry="8" fill="rgba(6,14,9,.92)" stroke="rgba(57,255,20,.24)" />`);
+            parts.push(`<text x="${rx + boxW/2}" y="${ry + 12.5}" fill="${stroke}" font-size="11" font-weight="900" text-anchor="middle">${text}</text>`);
           }
         });
       const priceText = (v) => escapeHtml(formatPrice(v));
-      parts.push(`<text x="${xRight + 6}" y="${chartPad.top + 8}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMaxH)}</text>`);
-      parts.push(`<text x="${xRight + 6}" y="${yMid + 4}" fill="${axisColor}" font-size="10" font-weight="700">${priceText((rawMaxH + rawMinL)/2)}</text>`);
-      parts.push(`<text x="${xRight + 6}" y="${chartPad.top + plotH}" fill="${axisColor}" font-size="10" font-weight="700">${priceText(rawMinL)}</text>`);
+      parts.push(`<text x="${xRight + 8}" y="${chartPad.top + 9}" fill="${axisColor}" font-size="11" font-weight="800">${priceText(rawMaxH)}</text>`);
+      parts.push(`<text x="${xRight + 8}" y="${yMid + 4}" fill="${axisColor}" font-size="11" font-weight="800">${priceText((rawMaxH + rawMinL)/2)}</text>`);
+      parts.push(`<text x="${xRight + 8}" y="${chartPad.top + plotH}" fill="${axisColor}" font-size="11" font-weight="800">${priceText(rawMinL)}</text>`);
       const formatTick = (bar) => {
         if (!bar?.t) return "";
         const d = new Date(bar.t);
@@ -2086,9 +2086,9 @@
       const firstTick = formatTick(bars[0]);
       const midTick = formatTick(bars[Math.floor(bars.length / 2)]);
       const lastTick = formatTick(bars[bars.length - 1]);
-      if (firstTick) parts.push(`<text x="${xLeft}" y="${height - 4}" fill="${axisColor}" font-size="10" font-weight="700">${escapeHtml(firstTick)}</text>`);
-      if (midTick) parts.push(`<text x="${chartPad.left + plotW/2}" y="${height - 4}" fill="${axisColor}" font-size="10" font-weight="700" text-anchor="middle">${escapeHtml(midTick)}</text>`);
-      if (lastTick) parts.push(`<text x="${xRight}" y="${height - 4}" fill="${axisColor}" font-size="10" font-weight="700" text-anchor="end">${escapeHtml(lastTick)}</text>`);
+      if (firstTick) parts.push(`<text x="${xLeft}" y="${height - 5}" fill="${axisColor}" font-size="11" font-weight="800">${escapeHtml(firstTick)}</text>`);
+      if (midTick) parts.push(`<text x="${chartPad.left + plotW/2}" y="${height - 5}" fill="${axisColor}" font-size="11" font-weight="800" text-anchor="middle">${escapeHtml(midTick)}</text>`);
+      if (lastTick) parts.push(`<text x="${xRight}" y="${height - 5}" fill="${axisColor}" font-size="11" font-weight="800" text-anchor="end">${escapeHtml(lastTick)}</text>`);
       // ★ v26 NEW: pattern markers overlay
       const markers = Array.isArray(opts.markers) ? opts.markers : [];
       if (markers.length){
@@ -2110,23 +2110,23 @@
             return [px, py];
           });
           const d = points.map((p, idx) => `${idx === 0 ? "M" : "L"}${p[0]} ${p[1]}`).join(" ");
-          const stroke = key === "line-up" ? "#22c55e" : key === "line-down" ? "#ef4444" : "rgba(255,255,255,.7)";
-          parts.push(`<path d="${d}" fill="none" stroke="${stroke}" stroke-width="1.6" stroke-dasharray="3 3" opacity="0.9" />`);
+          const stroke = key === "line-up" ? "#39ff14" : key === "line-down" ? "#ff6b6b" : "rgba(220,255,218,.82)";
+          parts.push(`<path d="${d}" fill="none" stroke="${stroke}" stroke-width="2.2" stroke-dasharray="4 3" opacity="0.95" />`);
         });
         markers.forEach(m => {
           if (!Number.isInteger(m.index) || m.index < 0 || m.index >= bars.length) return;
           if (typeof m.kind === "string" && m.kind.startsWith("line-")) return;
-          let color = m.color || "rgba(192,132,252,.95)";
-          if (m.kind === "bullish" || m.kind === "dot-up") color = m.color || "#22c55e";
-          else if (m.kind === "bearish" || m.kind === "dot-down") color = m.color || "#ef4444";
-          else if (m.kind === "neutral") color = m.color || "rgba(192,132,252,.95)";
+          let color = m.color || "rgba(57,255,20,.95)";
+          if (m.kind === "bullish" || m.kind === "dot-up") color = m.color || "#39ff14";
+          else if (m.kind === "bearish" || m.kind === "dot-down") color = m.color || "#ff6b6b";
+          else if (m.kind === "neutral") color = m.color || "rgba(57,255,20,.95)";
           const px = Math.round(chartPad.left + m.index * step + step/2);
           const py = clamp(scaleY(bars[m.index].h), chartPad.top, chartPad.top + plotH);
-          const r = 3.2;
-          parts.push(`<circle cx="${px}" cy="${py - 6}" r="${r}" fill="${color}" stroke="rgba(8,10,18,.85)" stroke-width="1" />`);
+          const r = 4.2;
+          parts.push(`<circle cx="${px}" cy="${py - 7}" r="${r}" fill="${color}" stroke="rgba(6,12,9,.92)" stroke-width="1.2" />`);
           if (m.label){
             const text = escapeHtml(String(m.label).slice(0, 6));
-            parts.push(`<text x="${px}" y="${py - 6 - r - 2}" fill="${color}" font-size="8" font-weight="900" text-anchor="middle">${text}</text>`);
+            parts.push(`<text x="${px}" y="${py - 7 - r - 3}" fill="${color}" font-size="9.5" font-weight="900" text-anchor="middle">${text}</text>`);
           }
         });
       }
@@ -3298,19 +3298,20 @@
         : item.rr1 >= 1.2 && (item.distToEntryAtr || 0) < 1.3
         ? { cls:"risk-mid", text:"風險可控" }
         : { cls:"risk-high", text:"風險較高" };
-      // Use classic GREEN/RED candles, but keep per-mode axis/grid theme for fast reading
-      const chartTheme = mode === "long"
-        ? { upColor:"rgba(34,197,94,.95)", downColor:"rgba(239,68,68,.92)", axisColor:"rgba(245,228,198,.78)", gridColor:"rgba(224,179,109,.10)", midColor:"rgba(224,179,109,.16)" }
-        : mode === "short"
-        ? { upColor:"rgba(34,197,94,.92)", downColor:"rgba(239,68,68,.95)", axisColor:"rgba(255,220,225,.78)", gridColor:"rgba(244,114,132,.10)", midColor:"rgba(244,114,132,.16)" }
-        : { upColor:"rgba(34,197,94,.92)", downColor:"rgba(239,68,68,.92)", axisColor:"rgba(219,234,254,.76)", gridColor:"rgba(96,165,250,.10)", midColor:"rgba(96,165,250,.16)" };
+      const chartTheme = {
+        upColor:"rgba(57,255,20,.95)",
+        downColor:"rgba(255,107,107,.94)",
+        axisColor:"rgba(219,255,214,.82)",
+        gridColor:"rgba(57,255,20,.20)",
+        midColor:"rgba(57,255,20,.14)"
+      };
       const structure = item.structure || {};
       const overlays = [
-        { value: item.price, label: formatPrice(item.price), color: mode === "short" ? "rgba(255,229,231,.86)" : "rgba(241,245,249,.88)", dash: true },
-        { value: item.entry, label: "", color: "rgba(224,179,109,.95)" },
-        { value: item.stop, label: "", color: "rgba(227,93,106,.95)", dash: true },
-        { value: item.tp1, label: "", color: "rgba(110,231,183,.92)" },
-        { value: item.tp2, label: "TP2", color: "rgba(96,165,250,.92)" },
+        { value: item.price, label: "PX", color: "rgba(219,255,214,.88)", dash: true },
+        { value: item.entry, label: "EN", color: "rgba(57,255,20,.95)" },
+        { value: item.stop, label: "SL", color: "rgba(255,107,107,.95)", dash: true },
+        { value: item.tp1, label: "TP1", color: "rgba(144,255,126,.95)" },
+        { value: item.tp2, label: "TP2", color: "rgba(114,255,79,.95)" },
         // Structure levels
         { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
         { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
@@ -3358,7 +3359,7 @@
             </div>
           </div>
           <div class="candidate-chart-plot">
-            ${miniCandlesSVG(item.sparkBars || [], 460, 156, { overlays, theme: chartTheme, series: buildIndicatorSeries(item.sparkBars || []), markers: v26GetPatternMarkers(item.sparkBars || []) })}
+            ${miniCandlesSVG(item.sparkBars || [], 560, 210, { overlays, theme: chartTheme, series: buildIndicatorSeries(item.sparkBars || []), markers: v26GetPatternMarkers(item.sparkBars || []) })}
           </div>
           ${(() => {
             const chips = v26GetPatternChips(item.sparkBars || []);
