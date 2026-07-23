@@ -23,7 +23,7 @@
 - Runtime：`Python 3`
 - Branch：`main`
 - Build Command：留空
-- Start Command：`python3 rest_proxy_server.py --port $PORT`
+- Start Command：`python3 rest_proxy_server.py`
 
 ## 一定要加嘅 Environment Variables
 
