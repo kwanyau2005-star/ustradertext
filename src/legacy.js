@@ -614,6 +614,19 @@
       }
       return out;
     }
+    function calcEmaSeries(bars, period=20){
+      if (!Array.isArray(bars) || !bars.length) return [];
+      const closes = bars.map(b => Number(b.c || 0));
+      const alpha = 2 / (period + 1);
+      const out = [];
+      let ema = closes[0];
+      out.push(ema);
+      for (let i = 1; i < closes.length; i++){
+        ema = closes[i] * alpha + ema * (1 - alpha);
+        out.push(ema);
+      }
+      return out;
+    }
     function calcVwapSeries(bars){
       let pv = 0;
       let vol = 0;
@@ -628,17 +641,22 @@
       }
       return out;
     }
-    function buildIndicatorSeries(bars){
-      // 風格參考你張圖：MA10 / MA20 / MA50 / MA200
+    function buildIndicatorSeries(bars, sourceBars=bars){
+      // 風格參考你張圖：EMA10 / EMA20 / EMA50 / EMA200 + VWAP
+      const chartBars = Array.isArray(bars) ? bars : [];
+      const baseBars = Array.isArray(sourceBars) && sourceBars.length ? sourceBars : chartBars;
+      const tail = (arr) => arr.length > chartBars.length ? arr.slice(-chartBars.length) : arr.slice();
       const series = [];
-      const ma10 = calcSmaSeries(bars, 10);
-      const ma20 = calcSmaSeries(bars, 20);
-      const ma50 = calcSmaSeries(bars, 50);
-      const ma200 = calcSmaSeries(bars, 200);
-      series.push({ key:"ma10", label:"MA10", color:"#53b6ff", width:2, values: ma10 });
-      series.push({ key:"ma20", label:"MA20", color:"#c565ff", width:2, values: ma20 });
-      series.push({ key:"ma50", label:"MA50", color:"#57d38d", width:2, values: ma50 });
-      series.push({ key:"ma200", label:"MA200", color:"#7be0e8", width:2, values: ma200 });
+      const ema10 = tail(calcEmaSeries(baseBars, 10));
+      const ema20 = tail(calcEmaSeries(baseBars, 20));
+      const ema50 = tail(calcEmaSeries(baseBars, 50));
+      const ema200 = tail(calcEmaSeries(baseBars, 200));
+      const vwap = tail(calcVwapSeries(baseBars));
+      series.push({ key:"ema10", label:"EMA10", color:"#53b6ff", width:2, values: ema10 });
+      series.push({ key:"ema20", label:"EMA20", color:"#c565ff", width:2, values: ema20 });
+      series.push({ key:"ema50", label:"EMA50", color:"#57d38d", width:2, values: ema50 });
+      series.push({ key:"ema200", label:"EMA200", color:"#7be0e8", width:2, values: ema200 });
+      series.push({ key:"vwap", label:"VWAP", color:"#ffd166", width:2.2, dash:true, values: vwap });
       return series;
     }
     function calcDailyTrend(bars){
@@ -2667,7 +2685,13 @@
           { value: structure.recentResistance, label: "H", color: "rgba(255,255,255,.32)", dash: true },
           { value: structure.recentSupport, label: "L", color: "rgba(255,255,255,.32)", dash: true }
         ].filter(o => Number.isFinite(o.value));
-        drawMiniCandlesCanvas(ctx, item.sparkBars || [], x + 18, y + 98, cardW - 36, 124, { overlays, theme, series: buildIndicatorSeries(item.sparkBars || []) });
+        drawMiniCandlesCanvas(ctx, item.sparkBars || [], x + 18, y + 98, cardW - 36, 124, {
+          overlays,
+          theme,
+          series: Array.isArray(item.indicatorSeries) && item.indicatorSeries.length
+            ? item.indicatorSeries
+            : buildIndicatorSeries(item.sparkBars || [])
+        });
 
         ctx.fillStyle = "#9fb0c5";
         ctx.font = "400 12px Arial, PingFang TC, Microsoft JhengHei, sans-serif";
@@ -3212,6 +3236,7 @@
     }
     function refineSetupQuality(setup, direction){
       let score = setup.score;
+      const baseScore = Math.round(clamp(setup.score || 0, 0, 100));
       const reasons = [...(setup.reasons || [])];
       const bonusReasons = [];
       const addBonus = (label, points) => {
@@ -3420,12 +3445,23 @@
         if (calibrationPack.boost > 0) addBonus("回測校準加成", calibrationPack.boost);
         reasons.push(`回測校準 ${calibrationPack.boost >= 0 ? "+" : ""}${calibrationPack.boost}`);
       }
+      const finalScore = Math.round(clamp(score, 0, 100));
+      const bonusTotal = Number(bonusReasons.reduce((sum, item) => sum + (item.points || 0), 0).toFixed(1));
+      const netAdjust = Number((finalScore - baseScore).toFixed(1));
+      const penaltyTotal = Number(Math.max(0, bonusTotal - netAdjust).toFixed(1));
 
       return {
         ...setup,
-        score: Math.round(clamp(score, 0, 100)),
+        score: finalScore,
         reasons,
         bonusReasons: bonusReasons.sort((a, b) => b.points - a.points).slice(0, 8),
+        scoreBreakdown: {
+          baseScore,
+          bonusTotal,
+          penaltyTotal,
+          netAdjust,
+          finalScore
+        },
         rr1: rrPack.rr,
         rrLabel: rrPack.label,
         breakoutLabel,
@@ -3484,6 +3520,9 @@
       const sparkBars = item.sparkBars || [];
       const patternMarkers = v26GetPatternMarkers(sparkBars);
       const patternChips = v26GetPatternChips(sparkBars);
+      const indicatorSeries = Array.isArray(item.indicatorSeries) && item.indicatorSeries.length
+        ? item.indicatorSeries
+        : buildIndicatorSeries(sparkBars);
       const article = document.createElement("article");
       article.className = `candidate ${modeClass}${selectedSymbols.has(item.symbol) ? " selected" : ""}`;
       article.dataset.symbol = item.symbol;
@@ -3492,9 +3531,19 @@
       const priceDelta = Number.isFinite(item.changePct) ? `${item.changePct >= 0 ? "+" : ""}${item.changePct.toFixed(2)}%` : `${item.weekChange >= 0 ? "+" : ""}${item.weekChange.toFixed(1)}%`;
       const priceDeltaClass = (Number.isFinite(item.changePct) ? item.changePct : item.weekChange) >= 0 ? "is-up" : "is-down";
       const scoreStrongClass = item.score >= 85 ? " score-strong" : "";
+      const fmtScorePart = (value) => {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return "--";
+        const rounded = Math.round(n * 10) / 10;
+        return String(rounded).replace(/\.0$/, "");
+      };
+      const scoreBreakdown = item.scoreBreakdown || {};
+      const scoreBreakdownHtml = Number.isFinite(scoreBreakdown.baseScore)
+        ? `<div class="score-breakdown">基礎 ${fmtScorePart(scoreBreakdown.baseScore)} · 加分 +${fmtScorePart(scoreBreakdown.bonusTotal)} · 扣分 -${fmtScorePart(scoreBreakdown.penaltyTotal)} = ${fmtScorePart(item.score)}</div>`
+        : "";
       const bonusReasons = Array.isArray(item.bonusReasons) ? item.bonusReasons.slice(0, 6) : [];
       const bonusReasonsHtml = bonusReasons.length
-        ? `<div class="bonus-reasons"><div class="bonus-title">加分原因</div><ul class="bonus-list">${bonusReasons.map(entry => `<li class="bonus-item"><span class="bonus-points">+${entry.points}</span><span class="bonus-text">${escapeHtml(entry.label)}</span></li>`).join("")}</ul></div>`
+        ? `<div class="bonus-reasons"><div class="bonus-title">加分原因（只計正分）</div><ul class="bonus-list">${bonusReasons.map(entry => `<li class="bonus-item"><span class="bonus-points">+${entry.points}</span><span class="bonus-text">${escapeHtml(entry.label)}</span></li>`).join("")}</ul></div>`
         : "";
       article.innerHTML = `
         <div class="candidate-top">
@@ -3537,7 +3586,7 @@
             </div>
           </div>
           <div class="candidate-chart-plot">
-            ${miniCandlesSVG(sparkBars, 560, 210, { overlays, theme: chartTheme, series: buildIndicatorSeries(sparkBars), markers: patternMarkers })}
+            ${miniCandlesSVG(sparkBars, 560, 210, { overlays, theme: chartTheme, series: indicatorSeries, markers: patternMarkers })}
           </div>
           ${(() => {
             const chips = patternChips;
@@ -3555,6 +3604,7 @@
           <div class="terminal-metric"><div class="k">Gap</div><div class="v">${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}%</div></div>
           <div class="terminal-metric"><div class="k">概念</div><div class="v">${mode === "short" ? (item.shortConceptLabel || "--") : (item.longConceptLabel || "--")}</div></div>
         </div>
+        ${scoreBreakdownHtml}
         ${bonusReasonsHtml}
         <div class="risk-row">
           <div class="risk-badge ${conviction.cls}">${conviction.text}</div>
@@ -4277,7 +4327,8 @@
         const headline = "";
         const earningsDays = 99;
         const marketCapB = 0;
-        const sparkBars = bars.slice(-60).map(b => ({ t:b.t, o:b.o, h:b.h, l:b.l, c:b.c, v:b.v || 0 }));
+        const sparkBars = bars.slice(-120).map(b => ({ t:b.t, o:b.o, h:b.h, l:b.l, c:b.c, v:b.v || 0 }));
+        const indicatorSeries = buildIndicatorSeries(sparkBars, bars);
         const structure = calcStructureLevels(bars, hourlyBars);
         const rsMetrics = calcRelativeStrengthMetrics(bars, qqqDaily, spyDaily);
         const sectorPack = calcSectorProxyAndRS(bars, sectorBarMap);
@@ -4366,6 +4417,7 @@
           shortConceptLabel: shortConcept.label,
           shortConceptSignals: shortConcept.signals,
           sparkBars,
+          indicatorSeries,
           weekChange,
           dailyStructure,
           newsSummary: summary,
