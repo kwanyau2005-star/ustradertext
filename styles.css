@@ -2064,3 +2064,46 @@ a.link{
   -webkit-box-orient:vertical;
   overflow:hidden;
 }
+
+.bonus-reasons{
+  margin:0 0 8px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid rgba(57,255,20,.18);
+  background:rgba(57,255,20,.06);
+}
+
+.bonus-title{
+  font-size:10px;
+  color:#a7c9af;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+  font-weight:800;
+}
+
+.bonus-list{
+  margin:0;
+  padding:0;
+  list-style:none;
+  display:grid;
+  gap:4px;
+}
+
+.bonus-item{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  font-size:11px;
+  line-height:1.3;
+}
+
+.bonus-points{
+  color:#7dff6a;
+  font-weight:900;
+  min-width:28px;
+}
+
+.bonus-text{
+  color:#d6f4d2;
+}

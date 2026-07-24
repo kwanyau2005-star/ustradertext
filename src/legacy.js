@@ -3213,6 +3213,10 @@
     function refineSetupQuality(setup, direction){
       let score = setup.score;
       const reasons = [...(setup.reasons || [])];
+      const bonusReasons = [];
+      const addBonus = (label, points) => {
+        if (points > 0) bonusReasons.push({ label, points: Number(points.toFixed(1)) });
+      };
       const sectorAlign = calcSectorAlignment(setup, direction);
       const dailyPack = setup.dailyStructure || {};
       const breakoutScore = direction === "long" ? (setup.longBreakoutQualityScore || 0) : (setup.shortBreakoutQualityScore || 0);
@@ -3225,8 +3229,13 @@
       const rrFloor = setup.marketRrFloor || 1.4;
       const triggerFloor = setup.marketTriggerFloor || 2;
       const chaseAtrCap = setup.marketChaseAtrCap || 0.75;
-      if ((setup.avgDollarVolumeM || 0) >= 120) score += 6;
-      else if ((setup.avgDollarVolumeM || 0) >= 35) score += 3;
+      if ((setup.avgDollarVolumeM || 0) >= 120) {
+        score += 6;
+        addBonus("高流動性", 6);
+      } else if ((setup.avgDollarVolumeM || 0) >= 35) {
+        score += 3;
+        addBonus("流動性達標", 3);
+      }
       else if ((setup.avgDollarVolumeM || 0) < 12) score -= 10;
       else if ((setup.avgDollarVolumeM || 0) < 20) score -= 5;
       reasons.push(`流動性：${setup.liquidityLabel || "一般"}`);
@@ -3242,23 +3251,37 @@
 
       const volumeScore = direction === "long" ? (setup.longVolumeScore || 0) : (setup.shortVolumeScore || 0);
       const volumeLabel = direction === "long" ? (setup.longVolumeLabel || "普通") : (setup.shortVolumeLabel || "普通");
-      if (volumeScore >= 3) score += 5;
+      if (volumeScore >= 3) {
+        score += 5;
+        addBonus(`量能確認：${volumeLabel}`, 5);
+      }
       else if (volumeScore <= 1) score -= 7;
       reasons.push(`量能確認：${volumeLabel}`);
       const conceptScore = direction === "long" ? (setup.longConceptScore || 0) : (setup.shortConceptScore || 0);
       const conceptLabel = direction === "long" ? (setup.longConceptLabel || "概念未確認") : (setup.shortConceptLabel || "概念未確認");
       const conceptSignals = direction === "long" ? (setup.longConceptSignals || []) : (setup.shortConceptSignals || []);
-      if (conceptScore >= 3) score += 6;
-      else if (conceptScore >= 2) score += 3;
+      if (conceptScore >= 3) {
+        score += 6;
+        addBonus(`概念共振：${conceptLabel}`, 6);
+      } else if (conceptScore >= 2) {
+        score += 3;
+        addBonus(`概念確認：${conceptLabel}`, 3);
+      }
       else if (conceptScore <= 0) score -= 3;
       reasons.push(`概念：${conceptLabel}${conceptSignals.length ? `（${conceptSignals.slice(0, 2).join(" / ")}）` : ""}`);
 
       const structurePack = calcStructureCleanliness(setup, direction);
-      if (structurePack.score) score += structurePack.score;
+      if (structurePack.score) {
+        score += structurePack.score;
+        if (structurePack.score > 0) addBonus(`結構乾淨：${structurePack.label}`, structurePack.score);
+      }
       reasons.push(`結構：${structurePack.label}${structurePack.roomAtr != null ? `（${structurePack.roomAtr} ATR 空間）` : ""}`);
 
       if (direction === "long") {
-        if (dailyPack.maStackLong) score += 4;
+        if (dailyPack.maStackLong) {
+          score += 4;
+          addBonus("日線均線多頭排列", 4);
+        }
         else if (dailyPack.maStackShort) {
           score -= 12;
           reasons.push("日線均線仍屬空頭");
@@ -3269,10 +3292,14 @@
         }
         if (dailyPack.breakoutClose && breakoutScore >= 3) {
           score += 4;
+          addBonus("日線 close 支持突破延續", 4);
           reasons.push("日線 close 支持突破延續");
         }
       } else {
-        if (dailyPack.maStackShort) score += 4;
+        if (dailyPack.maStackShort) {
+          score += 4;
+          addBonus("日線均線空頭排列", 4);
+        }
         else if (dailyPack.maStackLong) {
           score -= 12;
           reasons.push("日線均線仍屬多頭");
@@ -3283,15 +3310,22 @@
         }
         if (dailyPack.breakdownClose && breakoutScore >= 3) {
           score += 4;
+          addBonus("日線 close 支持跌破延續", 4);
           reasons.push("日線 close 支持跌破延續");
         }
       }
 
       const stylePack = classifySetupStyle(setup, direction);
-      if (stylePack.boost) score += stylePack.boost;
+      if (stylePack.boost) {
+        score += stylePack.boost;
+        if (stylePack.boost > 0) addBonus(`風格加成：${stylePack.label}`, stylePack.boost);
+      }
       reasons.push(`風格：${stylePack.label}${stylePack.boost ? `（${stylePack.boost >= 0 ? "+" : ""}${stylePack.boost}）` : ""}`);
 
-      if (sectorAlign.score) score += sectorAlign.score;
+      if (sectorAlign.score) {
+        score += sectorAlign.score;
+        if (sectorAlign.score > 0) addBonus(`板塊同步：${sectorAlign.label}`, sectorAlign.score);
+      }
       reasons.push(`板塊同步：${sectorAlign.label}`);
 
       const orbHeld = direction === "long"
@@ -3302,21 +3336,33 @@
         : (setup.structure?.prevDayLow ? setup.price <= setup.structure.prevDayLow * 1.002 : false);
       if (prevDayBreak) {
         score += 4;
+        addBonus(direction === "long" ? "站穩昨高" : "失守昨低", 4);
         reasons.push(direction === "long" ? "站穩昨高" : "失守昨低");
       }
       if (orbHeld) {
         score += 4;
+        addBonus(direction === "long" ? "站穩 ORB 高位" : "失守 ORB 低位", 4);
         reasons.push(direction === "long" ? "站穩 ORB 高位" : "失守 ORB 低位");
       }
 
-      if (breakoutScore >= 4) score += 8;
-      else if (breakoutScore >= 3) score += 5;
+      if (breakoutScore >= 4) {
+        score += 8;
+        addBonus(`突破質素：${breakoutLabel}`, 8);
+      } else if (breakoutScore >= 3) {
+        score += 5;
+        addBonus(`突破質素：${breakoutLabel}`, 5);
+      }
       else if (breakoutScore <= 1) score -= 6;
       reasons.push(`突破質素：${breakoutLabel}`);
 
       const rrPack = calcRiskReward(setup.entry, setup.stop, setup.tp1);
-      if (rrPack.rr >= 2) score += 6;
-      else if (rrPack.rr >= 1.4) score += 3;
+      if (rrPack.rr >= 2) {
+        score += 6;
+        addBonus(`RR ${rrPack.rr.toFixed(1)}`, 6);
+      } else if (rrPack.rr >= 1.4) {
+        score += 3;
+        addBonus(`RR ${rrPack.rr.toFixed(1)}`, 3);
+      }
       else if (rrPack.rr < 1) score -= 8;
       else if (rrPack.rr < 1.2) score -= 4;
       reasons.push(`RR ${rrPack.rr.toFixed(1)} (${rrPack.label})`);
@@ -3335,6 +3381,7 @@
       );
       if (pullbackConfirmed) {
         score += 4;
+        addBonus("回踩/反抽確認完成", 4);
         reasons.push("回踩/反抽確認完成");
       } else if (triggerScore >= 2) {
         score -= 3;
@@ -3370,6 +3417,7 @@
       const calibrationPack = latestCalibration.byKey?.[calibrationKey];
       if (calibrationPack?.boost) {
         score += calibrationPack.boost;
+        if (calibrationPack.boost > 0) addBonus("回測校準加成", calibrationPack.boost);
         reasons.push(`回測校準 ${calibrationPack.boost >= 0 ? "+" : ""}${calibrationPack.boost}`);
       }
 
@@ -3377,6 +3425,7 @@
         ...setup,
         score: Math.round(clamp(score, 0, 100)),
         reasons,
+        bonusReasons: bonusReasons.sort((a, b) => b.points - a.points).slice(0, 8),
         rr1: rrPack.rr,
         rrLabel: rrPack.label,
         breakoutLabel,
@@ -3443,6 +3492,10 @@
       const priceDelta = Number.isFinite(item.changePct) ? `${item.changePct >= 0 ? "+" : ""}${item.changePct.toFixed(2)}%` : `${item.weekChange >= 0 ? "+" : ""}${item.weekChange.toFixed(1)}%`;
       const priceDeltaClass = (Number.isFinite(item.changePct) ? item.changePct : item.weekChange) >= 0 ? "is-up" : "is-down";
       const scoreStrongClass = item.score >= 85 ? " score-strong" : "";
+      const bonusReasons = Array.isArray(item.bonusReasons) ? item.bonusReasons.slice(0, 6) : [];
+      const bonusReasonsHtml = bonusReasons.length
+        ? `<div class="bonus-reasons"><div class="bonus-title">加分原因</div><ul class="bonus-list">${bonusReasons.map(entry => `<li class="bonus-item"><span class="bonus-points">+${entry.points}</span><span class="bonus-text">${escapeHtml(entry.label)}</span></li>`).join("")}</ul></div>`
+        : "";
       article.innerHTML = `
         <div class="candidate-top">
           <div class="candidate-primary">
@@ -3502,6 +3555,7 @@
           <div class="terminal-metric"><div class="k">Gap</div><div class="v">${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}%</div></div>
           <div class="terminal-metric"><div class="k">概念</div><div class="v">${mode === "short" ? (item.shortConceptLabel || "--") : (item.longConceptLabel || "--")}</div></div>
         </div>
+        ${bonusReasonsHtml}
         <div class="risk-row">
           <div class="risk-badge ${conviction.cls}">${conviction.text}</div>
           <div class="risk-badge ${riskLevel.cls}">${riskLevel.text}</div>
