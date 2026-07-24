@@ -1247,6 +1247,40 @@
         lastVolRatio
       };
     }
+    function calcOrderflowConceptPack(bars, structure={}, direction="long"){
+      const last = bars.at(-1);
+      const prev = bars.at(-2);
+      if (!last || !prev) return { score:0, label:"資料不足", signals:[] };
+      const range = Math.max(1e-9, last.h - last.l);
+      const atr = calcATR(bars, 14) || Math.max(1e-9, avg(bars.slice(-14).map(b => (b.h - b.l) || 0)));
+      const avgVol20 = avg(bars.slice(-21, -1).map(bar => bar.v || 0)) || 0;
+      const volRatio = avgVol20 > 0 ? (last.v || 0) / avgVol20 : 1;
+      const lowerWickRatio = (Math.min(last.o, last.c) - last.l) / range;
+      const upperWickRatio = (last.h - Math.max(last.o, last.c)) / range;
+      const deltaProxy = ((last.c - last.o) / range) * volRatio;
+      const poc = structure.volumeNode;
+      const vwap = structure.sessionVWAP;
+      const near = (a, b, atrMul=0.35) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= atr * atrMul;
+      const longSignals = [
+        { ok: (near(last.l, vwap, 0.45) || near(last.l, poc, 0.45) || near(last.l, structure.recentResistance, 0.45)) && last.c > last.o, label:"流動性測試後收回" },
+        { ok: deltaProxy >= 0.16, label:"Delta 代理偏多" },
+        { ok: lowerWickRatio >= 0.32 && volRatio >= 1.05 && last.c >= prev.c * 0.998, label:"吸收賣壓" },
+        { ok: Number.isFinite(poc) ? last.c >= poc * 0.998 : false, label:"POC 上方接受" }
+      ];
+      const shortSignals = [
+        { ok: (near(last.h, vwap, 0.45) || near(last.h, poc, 0.45) || near(last.h, structure.recentSupport, 0.45)) && last.c < last.o, label:"流動性測試後壓回" },
+        { ok: deltaProxy <= -0.16, label:"Delta 代理偏空" },
+        { ok: upperWickRatio >= 0.32 && volRatio >= 1.05 && last.c <= prev.c * 1.002, label:"吸收買壓" },
+        { ok: Number.isFinite(poc) ? last.c <= poc * 1.002 : false, label:"POC 下方接受" }
+      ];
+      const hits = (direction === "long" ? longSignals : shortSignals).filter(item => item.ok);
+      const score = hits.length;
+      const label = score >= 3 ? "概念共振強"
+        : score >= 2 ? "概念共振"
+        : score >= 1 ? "概念初步"
+        : "概念未確認";
+      return { score, label, signals: hits.map(item => item.label) };
+    }
     function calcStructureCleanliness(setup, direction="long"){
       const atrDollar = setup.price * ((setup.atrPct || 0) / 100);
       if (!Number.isFinite(atrDollar) || atrDollar <= 0) {
@@ -3211,6 +3245,13 @@
       if (volumeScore >= 3) score += 5;
       else if (volumeScore <= 1) score -= 7;
       reasons.push(`量能確認：${volumeLabel}`);
+      const conceptScore = direction === "long" ? (setup.longConceptScore || 0) : (setup.shortConceptScore || 0);
+      const conceptLabel = direction === "long" ? (setup.longConceptLabel || "概念未確認") : (setup.shortConceptLabel || "概念未確認");
+      const conceptSignals = direction === "long" ? (setup.longConceptSignals || []) : (setup.shortConceptSignals || []);
+      if (conceptScore >= 3) score += 6;
+      else if (conceptScore >= 2) score += 3;
+      else if (conceptScore <= 0) score -= 3;
+      reasons.push(`概念：${conceptLabel}${conceptSignals.length ? `（${conceptSignals.slice(0, 2).join(" / ")}）` : ""}`);
 
       const structurePack = calcStructureCleanliness(setup, direction);
       if (structurePack.score) score += structurePack.score;
@@ -3459,7 +3500,7 @@
           <div class="terminal-metric"><div class="k">板塊同步</div><div class="v">${item.sectorRsLabel || "--"}</div></div>
           <div class="terminal-metric"><div class="k">量能</div><div class="v">${mode === "short" ? (item.shortVolumeLabel || "普通") : (item.longVolumeLabel || "普通")}</div></div>
           <div class="terminal-metric"><div class="k">Gap</div><div class="v">${item.gapPct >= 0 ? "+" : ""}${Number(item.gapPct || 0).toFixed(1)}%</div></div>
-          <div class="terminal-metric"><div class="k">結構</div><div class="v">${item.structureCleanLabel || "--"}</div></div>
+          <div class="terminal-metric"><div class="k">概念</div><div class="v">${mode === "short" ? (item.shortConceptLabel || "--") : (item.longConceptLabel || "--")}</div></div>
         </div>
         <div class="risk-row">
           <div class="risk-badge ${conviction.cls}">${conviction.text}</div>
@@ -4194,6 +4235,8 @@
         const gapMetrics = calcGapMetrics(bars);
         const longVolume = calcVolumeConfirmation(bars, "long");
         const shortVolume = calcVolumeConfirmation(bars, "short");
+        const longConcept = calcOrderflowConceptPack(bars, structure, "long");
+        const shortConcept = calcOrderflowConceptPack(bars, structure, "short");
 
         dataset.push({
           symbol,
@@ -4262,6 +4305,12 @@
           shortVolumeLabel: shortVolume.label,
           shortVolumeSignals: shortVolume.signals,
           shortVolumeRatio: shortVolume.lastVolRatio,
+          longConceptScore: longConcept.score,
+          longConceptLabel: longConcept.label,
+          longConceptSignals: longConcept.signals,
+          shortConceptScore: shortConcept.score,
+          shortConceptLabel: shortConcept.label,
+          shortConceptSignals: shortConcept.signals,
           sparkBars,
           weekChange,
           dailyStructure,
