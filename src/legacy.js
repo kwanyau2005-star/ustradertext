@@ -641,7 +641,7 @@
       }
       return out;
     }
-    function buildIndicatorSeries(bars, sourceBars=bars){
+    function buildIndicatorSeries(bars, sourceBars){
       // 風格參考你張圖：EMA10 / EMA20 / EMA50 / EMA200 + VWAP
       const chartBars = Array.isArray(bars) ? bars : [];
       const baseBars = Array.isArray(sourceBars) && sourceBars.length ? sourceBars : chartBars;
