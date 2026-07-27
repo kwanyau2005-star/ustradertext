@@ -1544,6 +1544,72 @@
       const rows = extractMinishareRows(json).map(normalizeUsRealtimeQuote);
       return new Map(rows.map(row => [row.symbol, row]));
     }
+    function chunkArray(list, size=80){
+      const out = [];
+      for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+      return out;
+    }
+    function normalizeAlpacaSnapshot(symbol, snapshot){
+      const quote = snapshot?.latestQuote || {};
+      const trade = snapshot?.latestTrade || {};
+      const minuteBar = snapshot?.minuteBar || {};
+      const dailyBar = snapshot?.dailyBar || {};
+      const prevDailyBar = snapshot?.prevDailyBar || {};
+      const bid = Number(quote.bp || 0);
+      const ask = Number(quote.ap || 0);
+      const mid = bid > 0 && ask > 0 ? (bid + ask) / 2 : 0;
+      const close = [
+        Number(minuteBar.c || 0),
+        Number(dailyBar.c || 0),
+        Number(trade.p || 0),
+        mid,
+        bid,
+        ask
+      ].find(v => Number.isFinite(v) && v > 0) || 0;
+      const open = Number(dailyBar.o || 0) || close;
+      const high = Number(dailyBar.h || 0) || Math.max(open, close);
+      const low = Number(dailyBar.l || 0) || Math.min(open, close);
+      const prevClose = Number(prevDailyBar.c || 0);
+      const pctChg = prevClose > 0 ? pct(close - prevClose, prevClose) : 0;
+      const timestamp = minuteBar.t || dailyBar.t || quote.t || trade.t || new Date().toISOString();
+      return {
+        symbol: String(symbol || "").toUpperCase(),
+        date: String(timestamp),
+        o: open,
+        h: high,
+        l: low,
+        c: close,
+        pc: prevClose,
+        v: Number(minuteBar.v || dailyBar.v || 0),
+        amount: 0,
+        pctChg
+      };
+    }
+    async function alpacaUsRealtimeQuotes(symbols=[]){
+      const uniqSymbols = [...new Set((symbols || []).map(s => String(s || "").trim().toUpperCase()).filter(Boolean))];
+      if (!uniqSymbols.length) return new Map();
+      const output = new Map();
+      const batches = chunkArray(uniqSymbols, 80);
+      for (const batch of batches){
+        const query = new URLSearchParams({
+          symbols: batch.join(","),
+          feed: "iex"
+        });
+        const res = await fetch(`/alpaca/snapshots?${query.toString()}`, {
+          headers: { "Accept": "application/json" }
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(String(json?.message || json?.error || `alpaca snapshots HTTP ${res.status}`));
+        }
+        const snapshots = json?.snapshots && typeof json.snapshots === "object" ? json.snapshots : {};
+        batch.forEach(symbol => {
+          const row = normalizeAlpacaSnapshot(symbol, snapshots[symbol]);
+          if (Number.isFinite(row.c) && row.c > 0) output.set(row.symbol, row);
+        });
+      }
+      return output;
+    }
     async function minishareUsDailyBars(authCode, symbol, startDate, endDate){
       const json = await minishareApi("us_daily_ms", authCode, {
         ts_code: symbol,
@@ -4180,6 +4246,21 @@
           el.errorCount.textContent = String(errorCounter);
           el.heroErrors.textContent = String(errorCounter);
           el.statusHint.textContent = `美股實時行情授權碼暫時未用到，先以日線資料繼續。${String(e?.message || e)}`;
+        }
+      } else {
+        try {
+          realtimeQuoteMap = await alpacaUsRealtimeQuotes(tickers);
+          if (realtimeQuoteMap.size) {
+            el.statusHint.textContent = `已接入 Alpaca 即時報價（${realtimeQuoteMap.size} 隻）。`;
+          }
+        } catch (e) {
+          const msg = String(e?.message || e || "");
+          if (!/missing_alpaca_credentials|unsupported_route/i.test(msg)) {
+            errorCounter++;
+            el.errorCount.textContent = String(errorCounter);
+            el.heroErrors.textContent = String(errorCounter);
+            el.statusHint.textContent = `Alpaca 即時報價暫時未用到，先以日線資料繼續。${msg}`;
+          }
         }
       }
 
