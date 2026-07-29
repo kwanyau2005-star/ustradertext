@@ -2073,6 +2073,14 @@ a.link{
   background:rgba(57,255,20,.06);
 }
 
+.penalty-reasons{
+  margin:0 0 8px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid rgba(255,107,107,.24);
+  background:rgba(255,107,107,.08);
+}
+
 .score-breakdown{
   margin:0 0 8px;
   padding:7px 10px;
@@ -2087,6 +2095,15 @@ a.link{
 .bonus-title{
   font-size:10px;
   color:#a7c9af;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+  font-weight:800;
+}
+
+.penalty-title{
+  font-size:10px;
+  color:#f2b3b3;
   letter-spacing:.08em;
   text-transform:uppercase;
   margin-bottom:5px;
@@ -2117,4 +2134,14 @@ a.link{
 
 .bonus-text{
   color:#d6f4d2;
+}
+
+.penalty-points{
+  color:#ff8f8f;
+  font-weight:900;
+  min-width:28px;
+}
+
+.penalty-text{
+  color:#ffd4d4;
 }

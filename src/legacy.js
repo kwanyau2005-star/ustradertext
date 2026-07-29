@@ -3305,8 +3305,12 @@
       const baseScore = Math.round(clamp(setup.score || 0, 0, 100));
       const reasons = [...(setup.reasons || [])];
       const bonusReasons = [];
+      const penaltyReasons = [];
       const addBonus = (label, points) => {
         if (points > 0) bonusReasons.push({ label, points: Number(points.toFixed(1)) });
+      };
+      const addPenalty = (label, points) => {
+        if (points > 0) penaltyReasons.push({ label, points: Number(points.toFixed(1)) });
       };
       const sectorAlign = calcSectorAlignment(setup, direction);
       const dailyPack = setup.dailyStructure || {};
@@ -3326,17 +3330,23 @@
       } else if ((setup.avgDollarVolumeM || 0) >= 35) {
         score += 3;
         addBonus("流動性達標", 3);
+      } else if ((setup.avgDollarVolumeM || 0) < 12) {
+        score -= 10;
+        addPenalty("流動性不足", 10);
+      } else if ((setup.avgDollarVolumeM || 0) < 20) {
+        score -= 5;
+        addPenalty("流動性偏低", 5);
       }
-      else if ((setup.avgDollarVolumeM || 0) < 12) score -= 10;
-      else if ((setup.avgDollarVolumeM || 0) < 20) score -= 5;
       reasons.push(`流動性：${setup.liquidityLabel || "一般"}`);
 
       const gapPct = setup.gapPct || 0;
       if (direction === "long" && gapPct >= 4.2) {
         score -= 10;
+        addPenalty("Gap 過大", 10);
         reasons.push(`Gap 過大（${gapPct.toFixed(1)}%）`);
       } else if (direction === "short" && gapPct <= -4.2) {
         score -= 10;
+        addPenalty("Gap 過大", 10);
         reasons.push(`Gap 過大（${gapPct.toFixed(1)}%）`);
       }
 
@@ -3345,8 +3355,10 @@
       if (volumeScore >= 3) {
         score += 5;
         addBonus(`量能確認：${volumeLabel}`, 5);
+      } else if (volumeScore <= 1) {
+        score -= 7;
+        addPenalty("量能不足", 7);
       }
-      else if (volumeScore <= 1) score -= 7;
       reasons.push(`量能確認：${volumeLabel}`);
       const conceptScore = direction === "long" ? (setup.longConceptScore || 0) : (setup.shortConceptScore || 0);
       const conceptLabel = direction === "long" ? (setup.longConceptLabel || "概念未確認") : (setup.shortConceptLabel || "概念未確認");
@@ -3357,14 +3369,17 @@
       } else if (conceptScore >= 2) {
         score += 3;
         addBonus(`概念確認：${conceptLabel}`, 3);
+      } else if (conceptScore <= 0) {
+        score -= 3;
+        addPenalty("概念未確認", 3);
       }
-      else if (conceptScore <= 0) score -= 3;
       reasons.push(`概念：${conceptLabel}${conceptSignals.length ? `（${conceptSignals.slice(0, 2).join(" / ")}）` : ""}`);
 
       const structurePack = calcStructureCleanliness(setup, direction);
       if (structurePack.score) {
         score += structurePack.score;
         if (structurePack.score > 0) addBonus(`結構乾淨：${structurePack.label}`, structurePack.score);
+        if (structurePack.score < 0) addPenalty(`結構偏密：${structurePack.label}`, Math.abs(structurePack.score));
       }
       reasons.push(`結構：${structurePack.label}${structurePack.roomAtr != null ? `（${structurePack.roomAtr} ATR 空間）` : ""}`);
 
@@ -3372,13 +3387,14 @@
         if (dailyPack.maStackLong) {
           score += 4;
           addBonus("日線均線多頭排列", 4);
-        }
-        else if (dailyPack.maStackShort) {
+        } else if (dailyPack.maStackShort) {
           score -= 12;
+          addPenalty("日線均線仍屬空頭", 12);
           reasons.push("日線均線仍屬空頭");
         }
         if ((dailyPack.rangePos20 || 0.5) < 0.55) {
           score -= 5;
+          addPenalty("日線收市未企穩區間強位", 5);
           reasons.push("日線收市未企穩區間強位");
         }
         if (dailyPack.breakoutClose && breakoutScore >= 3) {
@@ -3390,13 +3406,14 @@
         if (dailyPack.maStackShort) {
           score += 4;
           addBonus("日線均線空頭排列", 4);
-        }
-        else if (dailyPack.maStackLong) {
+        } else if (dailyPack.maStackLong) {
           score -= 12;
+          addPenalty("日線均線仍屬多頭", 12);
           reasons.push("日線均線仍屬多頭");
         }
         if ((dailyPack.rangePos20 || 0.5) > 0.45) {
           score -= 5;
+          addPenalty("日線收市未處弱勢區", 5);
           reasons.push("日線收市未處弱勢區");
         }
         if (dailyPack.breakdownClose && breakoutScore >= 3) {
@@ -3410,12 +3427,14 @@
       if (stylePack.boost) {
         score += stylePack.boost;
         if (stylePack.boost > 0) addBonus(`風格加成：${stylePack.label}`, stylePack.boost);
+        if (stylePack.boost < 0) addPenalty(`風格扣分：${stylePack.label}`, Math.abs(stylePack.boost));
       }
       reasons.push(`風格：${stylePack.label}${stylePack.boost ? `（${stylePack.boost >= 0 ? "+" : ""}${stylePack.boost}）` : ""}`);
 
       if (sectorAlign.score) {
         score += sectorAlign.score;
         if (sectorAlign.score > 0) addBonus(`板塊同步：${sectorAlign.label}`, sectorAlign.score);
+        if (sectorAlign.score < 0) addPenalty(`板塊逆向：${sectorAlign.label}`, Math.abs(sectorAlign.score));
       }
       reasons.push(`板塊同步：${sectorAlign.label}`);
 
@@ -3442,8 +3461,10 @@
       } else if (breakoutScore >= 3) {
         score += 5;
         addBonus(`突破質素：${breakoutLabel}`, 5);
+      } else if (breakoutScore <= 1) {
+        score -= 6;
+        addPenalty(`突破質素偏弱：${breakoutLabel}`, 6);
       }
-      else if (breakoutScore <= 1) score -= 6;
       reasons.push(`突破質素：${breakoutLabel}`);
 
       const rrPack = calcRiskReward(setup.entry, setup.stop, setup.tp1);
@@ -3453,17 +3474,25 @@
       } else if (rrPack.rr >= 1.4) {
         score += 3;
         addBonus(`RR ${rrPack.rr.toFixed(1)}`, 3);
+      } else if (rrPack.rr < 1) {
+        score -= 8;
+        addPenalty(`RR 過窄 ${rrPack.rr.toFixed(1)}`, 8);
+      } else if (rrPack.rr < 1.2) {
+        score -= 4;
+        addPenalty(`RR 偏窄 ${rrPack.rr.toFixed(1)}`, 4);
       }
-      else if (rrPack.rr < 1) score -= 8;
-      else if (rrPack.rr < 1.2) score -= 4;
       reasons.push(`RR ${rrPack.rr.toFixed(1)} (${rrPack.label})`);
       if (rrPack.rr < rrFloor) {
-        score -= setup.marketVolatilityLabel === "高波動" ? 10 : 5;
+        const rrPenalty = setup.marketVolatilityLabel === "高波動" ? 10 : 5;
+        score -= rrPenalty;
+        addPenalty(`波動${setup.marketVolatilityLabel}下 RR 未達標`, rrPenalty);
         reasons.push(`波動${setup.marketVolatilityLabel}，RR 要 >= ${rrFloor.toFixed(1)}`);
       }
 
       if (triggerScore < triggerFloor) {
-        score -= setup.marketVolatilityLabel === "高波動" ? 10 : 4;
+        const triggerPenalty = setup.marketVolatilityLabel === "高波動" ? 10 : 4;
+        score -= triggerPenalty;
+        addPenalty(`波動${setup.marketVolatilityLabel}下 Trigger 未達標`, triggerPenalty);
         reasons.push(`波動${setup.marketVolatilityLabel}，Trigger 要 >= ${triggerFloor}`);
       }
       const triggerSignals = direction === "long" ? (setup.longTriggerSignals || []) : (setup.shortTriggerSignals || []);
@@ -3476,14 +3505,17 @@
         reasons.push("回踩/反抽確認完成");
       } else if (triggerScore >= 2) {
         score -= 3;
+        addPenalty("未見明確回踩確認", 3);
         reasons.push("未見明確回踩確認");
       }
       if (triggerScore <= 1 && breakoutScore <= 1) {
         score -= 4;
+        addPenalty("觸發與突破同時偏弱", 4);
         reasons.push("觸發與突破同時偏弱");
       }
       if (triggerScore <= 1 && volumeScore <= 1) {
         score -= 3;
+        addPenalty("觸發與量能同時偏弱", 3);
         reasons.push("觸發與量能同時偏弱");
       }
 
@@ -3491,16 +3523,19 @@
       let chaseBlocked = false;
       if (distToEntryAtr >= Math.max(1.2, chaseAtrCap + 0.55)) {
         score -= 18;
+        addPenalty("距離入場過遠", 18);
         chaseBlocked = true;
         reasons.push(`距離入場過遠（${distToEntryAtr.toFixed(1)} ATR）`);
       } else if (distToEntryAtr >= chaseAtrCap) {
         score -= 8;
+        addPenalty("距離入場偏遠", 8);
         reasons.push(`距離入場偏遠（${distToEntryAtr.toFixed(1)} ATR）`);
       }
       if (distToVwapAtr != null) {
         const away = distToVwapAtr >= 1.9;
         if (away) {
           score -= 6;
+          addPenalty("偏離 VWAP 過大", 6);
           reasons.push(`偏離VWAP（${distToVwapAtr.toFixed(1)} ATR）`);
         }
       }
@@ -3509,18 +3544,21 @@
       if (calibrationPack?.boost) {
         score += calibrationPack.boost;
         if (calibrationPack.boost > 0) addBonus("回測校準加成", calibrationPack.boost);
+        if (calibrationPack.boost < 0) addPenalty("回測校準扣分", Math.abs(calibrationPack.boost));
         reasons.push(`回測校準 ${calibrationPack.boost >= 0 ? "+" : ""}${calibrationPack.boost}`);
       }
       const finalScore = Math.round(clamp(score, 0, 100));
       const bonusTotal = Number(bonusReasons.reduce((sum, item) => sum + (item.points || 0), 0).toFixed(1));
+      const penaltyRawTotal = Number(penaltyReasons.reduce((sum, item) => sum + (item.points || 0), 0).toFixed(1));
       const netAdjust = Number((finalScore - baseScore).toFixed(1));
-      const penaltyTotal = Number(Math.max(0, bonusTotal - netAdjust).toFixed(1));
+      const penaltyTotal = Number(Math.max(0, penaltyRawTotal).toFixed(1));
 
       return {
         ...setup,
         score: finalScore,
         reasons,
         bonusReasons: bonusReasons.sort((a, b) => b.points - a.points).slice(0, 8),
+        penaltyReasons: penaltyReasons.sort((a, b) => b.points - a.points).slice(0, 8),
         scoreBreakdown: {
           baseScore,
           bonusTotal,
@@ -3611,6 +3649,10 @@
       const bonusReasonsHtml = bonusReasons.length
         ? `<div class="bonus-reasons"><div class="bonus-title">加分原因（只計正分）</div><ul class="bonus-list">${bonusReasons.map(entry => `<li class="bonus-item"><span class="bonus-points">+${entry.points}</span><span class="bonus-text">${escapeHtml(entry.label)}</span></li>`).join("")}</ul></div>`
         : "";
+      const penaltyReasons = Array.isArray(item.penaltyReasons) ? item.penaltyReasons.slice(0, 6) : [];
+      const penaltyReasonsHtml = penaltyReasons.length
+        ? `<div class="penalty-reasons"><div class="penalty-title">減分原因（只計扣分）</div><ul class="bonus-list">${penaltyReasons.map(entry => `<li class="bonus-item"><span class="penalty-points">-${entry.points}</span><span class="penalty-text">${escapeHtml(entry.label)}</span></li>`).join("")}</ul></div>`
+        : "";
       article.innerHTML = `
         <div class="candidate-top">
           <div class="candidate-primary">
@@ -3672,6 +3714,7 @@
         </div>
         ${scoreBreakdownHtml}
         ${bonusReasonsHtml}
+        ${penaltyReasonsHtml}
         <div class="risk-row">
           <div class="risk-badge ${conviction.cls}">${conviction.text}</div>
           <div class="risk-badge ${riskLevel.cls}">${riskLevel.text}</div>
