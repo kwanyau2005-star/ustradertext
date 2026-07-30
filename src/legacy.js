@@ -577,6 +577,9 @@
       try { json = text ? JSON.parse(text) : null; } catch { json = null; }
       if (!res.ok) {
         const serverMsg = json && typeof json === "object" ? (json.error || json.message || "") : "";
+        if (deploymentMode.isManagedPolygonProxy && /missing_proxy_key/i.test(String(serverMsg || ""))) {
+          enableManualPolygonKeyMode("伺服器端未設 Massive key，請去 Keys 貼入 Massive/Polygon key。");
+        }
         throw new Error(`${ticker} Massive Polygon ${timespan} bars HTTP ${res.status}${serverMsg ? ` · ${serverMsg}` : ""}`);
       }
       if (json && typeof json === "object" && json.error) throw new Error(String(json.error));
@@ -4806,3 +4809,11 @@
     renderSelectedPanel();
     el.tickers.value = coreUniverse50;
     switchPage("scanner");
+    function enableManualPolygonKeyMode(hint=""){
+      if (!deploymentMode.isManagedPolygonProxy) return;
+      deploymentMode.isManagedPolygonProxy = false;
+      applyKeyUiState();
+      if (el.statusHint) {
+        el.statusHint.textContent = hint || "偵測到伺服器端未設定 Massive key，已切換為手動輸入 key 模式。";
+      }
+    }
