@@ -35,10 +35,6 @@ UPSTREAM_REST_BASE = os.environ.get("UPSTREAM_REST_BASE", "http://44.219.45.87:8
 ENV_PROXY_KEY = os.environ.get("MASSIVE_PROXY_KEY", "").strip()
 MINISHARE_API_BASE = os.environ.get("MINISHARE_API_BASE", "http://mapi.mintree.site:8081").rstrip("/")
 ENV_MINISHARE_AUTH_CODE = os.environ.get("MINISHARE_AUTH_CODE", "").strip()
-ALPACA_TRADING_BASE = os.environ.get("ALPACA_TRADING_BASE", "https://paper-api.alpaca.markets").rstrip("/")
-ALPACA_DATA_BASE = os.environ.get("ALPACA_DATA_BASE", "https://data.alpaca.markets").rstrip("/")
-ENV_ALPACA_KEY_ID = os.environ.get("ALPACA_KEY_ID", "").strip()
-ENV_ALPACA_SECRET_KEY = os.environ.get("ALPACA_SECRET_KEY", "").strip()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -49,8 +45,6 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith("/massive-proxy/"):
             return self._proxy_to_upstream()
-        if self.path.startswith("/alpaca/"):
-            return self._proxy_to_alpaca()
         return super().do_GET()
 
     def do_POST(self):
@@ -65,8 +59,6 @@ class Handler(SimpleHTTPRequestHandler):
     def do_HEAD(self):
         if self.path.startswith("/massive-proxy/"):
             return self._proxy_to_upstream(head_only=True)
-        if self.path.startswith("/alpaca/"):
-            return self._proxy_to_alpaca(head_only=True)
         return super().do_HEAD()
 
     def _proxy_to_upstream(self, head_only: bool = False):
@@ -174,80 +166,6 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(body)
-        except Exception as e:
-            msg = str(e).replace('"', '\\"')
-            self.send_response(502)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(f'{{"error":"proxy_failed","message":"{msg}"}}'.encode("utf-8"))
-
-    def _proxy_to_alpaca(self, head_only: bool = False):
-        if not ENV_ALPACA_KEY_ID or not ENV_ALPACA_SECRET_KEY:
-            self.send_response(400)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(
-                b'{"error":"missing_alpaca_credentials","message":"Set ALPACA_KEY_ID and ALPACA_SECRET_KEY."}'
-            )
-            return
-
-        parsed = urlparse(self.path)
-        route = parsed.path[len("/alpaca/") :].strip("/")
-        if not route:
-            self.send_response(400)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(b'{"error":"missing_route"}')
-            return
-
-        if route == "account":
-            upstream_url = f"{ALPACA_TRADING_BASE}/v2/account"
-        elif route == "snapshots":
-            upstream_url = f"{ALPACA_DATA_BASE}/v2/stocks/snapshots"
-        elif route == "quotes/latest":
-            upstream_url = f"{ALPACA_DATA_BASE}/v2/stocks/quotes/latest"
-        else:
-            self.send_response(404)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(b'{"error":"unsupported_route"}')
-            return
-
-        if parsed.query:
-            upstream_url += "?" + parsed.query
-
-        req = urllib.request.Request(
-            upstream_url,
-            method="HEAD" if head_only else "GET",
-            headers={
-                "APCA-API-KEY-ID": ENV_ALPACA_KEY_ID,
-                "APCA-API-SECRET-KEY": ENV_ALPACA_SECRET_KEY,
-                "Accept": "application/json",
-                "User-Agent": "us-trading-dashboard-alpaca-proxy/1.0",
-            },
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                status = resp.getcode()
-                body = b"" if head_only else resp.read()
-                self.send_response(status)
-                self.send_header("Content-Type", resp.headers.get("Content-Type") or "application/json")
-                self.send_header("Cache-Control", "no-store")
-                self.end_headers()
-                if not head_only:
-                    self.wfile.write(body)
-        except urllib.error.HTTPError as e:
-            body = e.read()
-            self.send_response(e.code)
-            self.send_header("Content-Type", e.headers.get("Content-Type") or "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            if not head_only:
-                self.wfile.write(body)
         except Exception as e:
             msg = str(e).replace('"', '\\"')
             self.send_response(502)

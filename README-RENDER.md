@@ -30,15 +30,6 @@
 - `MASSIVE_PROXY_KEY` = 你條 Massive / Polygon REST key
 - `UPSTREAM_REST_BASE` = `http://44.219.45.87:8081`
 
-## Alpaca（可選，建議）
-
-如果你想用 Alpaca 即時報價（由伺服器代理，前端唔暴露 secret），再加：
-
-- `ALPACA_KEY_ID` = 你嘅 Alpaca Key ID
-- `ALPACA_SECRET_KEY` = 你嘅 Alpaca Secret Key
-- `ALPACA_DATA_BASE` = `https://data.alpaca.markets`（可留預設）
-- `ALPACA_TRADING_BASE` = `https://paper-api.alpaca.markets`（可留預設）
-
 ## 部署後
 
 Render 會提供一條網址，例如：
